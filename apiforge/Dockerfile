@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # ── Production image ──────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
@@ -25,9 +25,8 @@ RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
 
-# Ensure upload directory exists (for local/fallback use)
 RUN mkdir -p uploads
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy; node dist/main"]
+CMD ["sh", "-c", "echo 'Starting migrations...' && npx prisma migrate deploy && echo 'Starting app...' && node dist/main"]
