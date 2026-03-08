@@ -32,6 +32,11 @@ async function load() {
   loading.value = false
 }
 
+function toggleProject(projectId: string, selected: boolean) {
+  const a = inviteAssignments[projectId]
+  if (a) a.selected = selected
+}
+
 async function sendInvite() {
   inviteError.value = ''
   inviteSuccess.value = ''
@@ -211,7 +216,7 @@ function displayName(user: { name: string | null; email: string }) {
                   type="checkbox"
                   :checked="inviteAssignments[p.id]?.selected"
                   style="width:auto;accent-color:var(--accent)"
-                  @change="if (inviteAssignments[p.id]) inviteAssignments[p.id]!.selected = ($event.target as HTMLInputElement).checked"
+                  @change="toggleProject(p.id, ($event.target as HTMLInputElement).checked)"
                 />
                 <span style="font-size:0.875rem;font-weight:500">{{ p.name }}</span>
               </label>
