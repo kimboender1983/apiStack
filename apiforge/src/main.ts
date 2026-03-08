@@ -31,11 +31,20 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  await app.register(require('@fastify/cors'), {
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+  // Register CORS via raw hook so it runs before route matching (fixes OPTIONS 404)
+  const fastify = app.getHttpAdapter().getInstance();
+  fastify.addHook('onRequest', async (req, reply) => {
+    const origin = req.headers.origin as string | undefined;
+    if (origin) {
+      reply.header('Access-Control-Allow-Origin', origin);
+      reply.header('Access-Control-Allow-Credentials', 'true');
+    }
+    if (req.method === 'OPTIONS') {
+      reply.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+      reply.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+      reply.header('Access-Control-Max-Age', '86400');
+      await reply.status(204).send();
+    }
   });
 
   await app.register(require('@fastify/multipart'), {
