@@ -283,7 +283,7 @@ function isImageMime(mimeType: string): boolean {
   return mimeType.startsWith('image/')
 }
 
-function fileValue(record: Record, key: string): StoredFile | null {
+function fileValue(record: ApiRecord, key: string): StoredFile | null {
   const val = record[key]
   if (val && typeof val === 'object' && (val as any).url) return val as StoredFile
   return null
