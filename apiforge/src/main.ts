@@ -37,11 +37,6 @@ async function bootstrap(): Promise<void> {
     prefix: '/uploads/',
   });
 
-  // Health check for Railway / load balancers
-  app.getHttpAdapter().get('/health', (_req: any, res: any) => {
-    res.status(200).send({ status: 'ok' });
-  });
-
   const port = parseInt(process.env.PORT ?? '3000', 10);
   await app.listen(port, '0.0.0.0');
   console.log(`APIForge running on port ${port}`);
