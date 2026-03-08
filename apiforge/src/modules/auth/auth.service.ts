@@ -1,35 +1,20 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  private transporter: nodemailer.Transporter;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-  ) {
-    this.transporter = nodemailer.createTransport({
-      host: config.get<string>('SMTP_HOST'),
-      port: config.get<number>('SMTP_PORT', 587),
-      secure: config.get<number>('SMTP_PORT', 587) === 465,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      auth: {
-        user: config.get<string>('SMTP_USER'),
-        pass: config.get<string>('SMTP_PASS'),
-      },
-    });
-  }
+  ) {}
 
   async requestOtp(email: string): Promise<void> {
     const code = this.generateOtp();
@@ -51,20 +36,31 @@ export class AuthService {
       return;
     }
 
-    console.log(`[Auth] Sending OTP email to ${email} via ${this.config.get('SMTP_HOST')}:${this.config.get('SMTP_PORT')}`);
-    try {
-      await this.transporter.sendMail({
-        from: this.config.get<string>('SMTP_FROM', 'noreply@apiforge.dev'),
-        to: email,
+    console.log(`[Auth] Sending OTP email to ${email} via Resend API`);
+    const apiKey = this.config.get<string>('RESEND_API_KEY');
+    const from = this.config.get<string>('SMTP_FROM', 'onboarding@resend.dev');
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [email],
         subject: 'Your APIForge login code',
         text: `Your one-time login code is: ${code}\n\nThis code expires in ${ttlMinutes} minutes.`,
         html: `<p>Your APIForge login code is: <strong>${code}</strong></p><p>Expires in ${ttlMinutes} minutes.</p>`,
-      });
-      console.log(`[Auth] OTP email sent to ${email}`);
-    } catch (err) {
-      console.error(`[Auth] Failed to send OTP email:`, err);
-      throw err;
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[Auth] Resend API error ${res.status}:`, body);
+      throw new InternalServerErrorException('Failed to send OTP email');
     }
+    console.log(`[Auth] OTP email sent to ${email}`);
   }
 
   async verifyOtp(email: string, code: string): Promise<{ accessToken: string }> {
