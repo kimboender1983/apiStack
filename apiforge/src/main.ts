@@ -20,20 +20,13 @@ process.on('unhandledRejection', (reason) => {
 async function bootstrap(): Promise<void> {
   const adapter = new FastifyAdapter({ logger: process.env.NODE_ENV !== 'production' });
 
-  // Register CORS hook before NestJS seals the Fastify instance
-  adapter.getInstance().addHook('onRequest', async (req, reply) => {
-    const origin = req.headers.origin as string | undefined;
-    if (origin) {
-      reply.header('Access-Control-Allow-Origin', origin);
-      reply.header('Access-Control-Allow-Credentials', 'true');
-    }
-    if (req.method === 'OPTIONS') {
-      reply.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-      reply.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-      reply.header('Access-Control-Max-Age', '86400');
-      reply.status(204);
-      await reply.send();
-    }
+  // Register CORS before NestJS initialises routes
+  await adapter.getInstance().register(require('@fastify/cors'), {
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    strictPreflight: false,
   });
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter);
