@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { team, members as membersApi, type WorkspaceTeam, type TeamMember } from '../api/client'
 import UserAvatar from '../components/UserAvatar.vue'
 
+const { t } = useI18n()
 const data = ref<WorkspaceTeam | null>(null)
 const loading = ref(true)
 
@@ -44,7 +46,7 @@ async function sendInvite() {
     .filter(([, v]) => v.selected)
     .map(([projectId, v]) => ({ projectId, role: v.role }))
   if (assignments.length === 0) {
-    inviteError.value = 'Select at least one project.'
+    inviteError.value = t('team.selectAtLeastOne')
     return
   }
   inviting.value = true
@@ -53,9 +55,9 @@ async function sendInvite() {
     if (result.errors.length > 0 && result.invitations.length === 0) {
       inviteError.value = result.errors.map((e: any) => e.reason).join(', ')
     } else {
-      inviteSuccess.value = `Invitation${result.invitations.length > 1 ? 's' : ''} sent to ${inviteEmail.value}.`
+      inviteSuccess.value = t('team.invitationsSent', result.invitations.length, { email: inviteEmail.value } as any)
       if (result.errors.length > 0) {
-        inviteSuccess.value += ` (${result.errors.length} project(s) skipped: already a member)`
+        inviteSuccess.value += ` ${t('team.projectsSkipped', { count: result.errors.length })}`
       }
       inviteEmail.value = ''
       Object.values(inviteAssignments).forEach(v => { v.selected = false; v.role = 'editor' })
@@ -75,7 +77,7 @@ async function changeRole(membership: { id: string; projectId: string; role: str
 }
 
 async function removeMembership(member: TeamMember, membership: { id: string; projectId: string; projectName: string }) {
-  if (!confirm(`Remove ${member.user.email} from "${membership.projectName}"?`)) return
+  if (!confirm(t('team.confirmRemove', { email: member.user.email, project: membership.projectName }))) return
   await membersApi.remove(membership.projectId, membership.id)
   member.memberships = member.memberships.filter(m => m.id !== membership.id)
   if (member.memberships.length === 0) {
@@ -84,7 +86,7 @@ async function removeMembership(member: TeamMember, membership: { id: string; pr
 }
 
 async function cancelInvitation(invEmail: string, inv: { invitationId: string; projectId: string; projectName: string }) {
-  if (!confirm(`Cancel invitation to "${inv.projectName}" for ${invEmail}?`)) return
+  if (!confirm(t('team.confirmCancelInvitation', { project: inv.projectName, email: invEmail }))) return
   await membersApi.cancelInvitation(inv.projectId, inv.invitationId)
   await load()
 }
@@ -97,16 +99,16 @@ function displayName(user: { name: string | null; email: string }) {
 <template>
   <div class="page">
     <div class="page-header">
-      <h1>Team</h1>
-      <button class="btn btn-primary" @click="showInvite = true">+ Invite member</button>
+      <h1>{{ $t('team.title') }}</h1>
+      <button class="btn btn-primary" @click="showInvite = true">{{ $t('team.inviteMember') }}</button>
     </div>
 
-    <div v-if="loading" class="text-muted">Loading…</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
 
     <template v-else-if="data">
       <!-- No projects owned -->
       <div v-if="data.projects.length === 0" class="card">
-        <div class="card-empty">Create a project first to invite team members.</div>
+        <div class="card-empty">{{ $t('team.noProjects') }}</div>
       </div>
 
       <template v-else>
@@ -142,7 +144,7 @@ function displayName(user: { name: string | null; email: string }) {
                       <option value="editor">editor</option>
                       <option value="viewer">viewer</option>
                     </select>
-                    <button class="btn btn-danger btn-sm" @click="removeMembership(member, m)">Remove</button>
+                    <button class="btn btn-danger btn-sm" @click="removeMembership(member, m)">{{ $t('team.remove') }}</button>
                   </div>
                 </div>
               </div>
@@ -153,14 +155,14 @@ function displayName(user: { name: string | null; email: string }) {
         <!-- Pending invitations -->
         <div v-if="data.invitations.length > 0" class="section">
           <div class="section-header">
-            <h3>Pending invitations</h3>
+            <h3>{{ $t('team.pendingInvitations') }}</h3>
           </div>
           <div class="card">
             <div v-for="inv in data.invitations" :key="inv.email">
               <div class="card-row" style="cursor:default;align-items:flex-start;gap:1rem">
                 <div style="flex-shrink:0">
                   <div style="font-weight:500">{{ inv.email }}</div>
-                  <div class="text-muted" style="font-size:0.8125rem">awaiting acceptance</div>
+                  <div class="text-muted" style="font-size:0.8125rem">{{ $t('team.awaiting') }}</div>
                 </div>
                 <div style="flex:1;display:flex;flex-direction:column;gap:0.375rem">
                   <div
@@ -171,7 +173,7 @@ function displayName(user: { name: string | null; email: string }) {
                     <span class="text-muted" style="font-size:0.8125rem">{{ p.projectName }}</span>
                     <div class="flex-gap">
                       <span class="badge badge-gray">{{ p.role }}</span>
-                      <button class="btn btn-danger btn-sm" @click="cancelInvitation(inv.email, p)">Cancel</button>
+                      <button class="btn btn-danger btn-sm" @click="cancelInvitation(inv.email, p)">{{ $t('team.cancel') }}</button>
                     </div>
                   </div>
                 </div>
@@ -181,7 +183,7 @@ function displayName(user: { name: string | null; email: string }) {
         </div>
 
         <div v-if="data.members.length === 0 && data.invitations.length === 0" class="card">
-          <div class="card-empty">No team members yet. Invite someone to get started.</div>
+          <div class="card-empty">{{ $t('team.noMembers') }}</div>
         </div>
       </template>
     </template>
@@ -191,20 +193,21 @@ function displayName(user: { name: string | null; email: string }) {
   <div v-if="showInvite" class="modal-overlay" @click.self="showInvite = false">
     <div class="modal" style="width:500px">
       <div class="modal-header">
-        <h2>Invite team member</h2>
+        <h2>{{ $t('team.inviteModal') }}</h2>
         <button class="btn btn-ghost btn-sm" @click="showInvite = false">✕</button>
       </div>
 
       <div v-if="inviteError" class="alert alert-error">{{ inviteError }}</div>
+      <div v-if="inviteSuccess" class="alert alert-success">{{ inviteSuccess }}</div>
 
       <form class="form" @submit.prevent="sendInvite">
         <div class="field">
-          <label>Email address</label>
-          <input v-model="inviteEmail" type="email" placeholder="colleague@example.com" autofocus required />
+          <label>{{ $t('team.emailAddress') }}</label>
+          <input v-model="inviteEmail" type="email" :placeholder="$t('team.emailPlaceholder')" autofocus required />
         </div>
 
         <div class="field">
-          <label>Project access</label>
+          <label>{{ $t('team.projectAccess') }}</label>
           <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.25rem">
             <div
               v-for="p in data?.projects"
@@ -233,9 +236,9 @@ function displayName(user: { name: string | null; email: string }) {
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" @click="showInvite = false">Cancel</button>
+          <button type="button" class="btn btn-ghost" @click="showInvite = false">{{ $t('common.cancel') }}</button>
           <button type="submit" class="btn btn-primary" :disabled="inviting">
-            {{ inviting ? 'Sending…' : 'Send invitation' }}
+            {{ inviting ? $t('team.sending') : $t('team.sendInvitation') }}
           </button>
         </div>
       </form>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { collections, projects, type Collection, type Project } from '../api/client'
 import { useProjectRole } from '../composables/useProjectRole'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const projectId = route.params.projectId as string
 
 const project = ref<Project | null>(null)
@@ -47,7 +49,7 @@ async function create() {
 }
 
 async function remove(c: Collection) {
-  if (!confirm(`Delete collection "${c.name}"?`)) return
+  if (!confirm(t('collections.confirmDelete', { name: c.name }))) return
   await collections.delete(projectId, c.id)
   list.value = list.value.filter(x => x.id !== c.id)
 }
@@ -68,20 +70,20 @@ const roleCls: Record<string, string> = {
 <template>
   <div class="page">
     <div class="breadcrumb">
-      <RouterLink to="/">Projects</RouterLink>
+      <RouterLink to="/">{{ $t('nav.projects') }}</RouterLink>
       <span>/</span>
-      <span class="current">{{ project?.name ?? '…' }}</span>
+      <span class="current">{{ project?.name ?? '\u2026' }}</span>
     </div>
 
     <div class="page-header">
       <div style="display:flex;align-items:center;gap:0.75rem">
-        <h1>Collections</h1>
+        <h1>{{ $t('nav.collections') }}</h1>
         <span v-if="role" class="role-badge" :class="roleCls[role]">{{ role }}</span>
       </div>
-      <button v-if="canEdit()" class="btn btn-primary" @click="showModal = true">+ New collection</button>
+      <button v-if="canEdit()" class="btn btn-primary" @click="showModal = true">{{ $t('collections.newCollection') }}</button>
     </div>
 
-    <div v-if="loading" class="text-muted">Loading…</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
 
     <div v-else class="card">
       <div
@@ -93,16 +95,16 @@ const roleCls: Record<string, string> = {
         <div>
           <div style="font-weight:500">{{ c.name }}</div>
           <div class="text-muted" style="font-size:0.8125rem">
-            {{ c.fields?.length ?? 0 }} fields
+            {{ $t('collections.fields', { count: c.fields?.length ?? 0 }) }}
           </div>
         </div>
         <div class="flex-gap" @click.stop>
           <span class="badge" :class="visibilityClass[c.visibility]">{{ c.visibility }}</span>
-          <button v-if="isOwner()" class="btn btn-danger btn-sm" @click="remove(c)">Delete</button>
+          <button v-if="isOwner()" class="btn btn-danger btn-sm" @click="remove(c)">{{ $t('common.delete') }}</button>
         </div>
       </div>
       <div v-if="list.length === 0" class="card-empty">
-        No collections yet.{{ canEdit() ? ' Create your first one.' : '' }}
+        {{ canEdit() ? $t('collections.noCollectionsCreate') : $t('collections.noCollections') }}
       </div>
     </div>
   </div>
@@ -110,27 +112,27 @@ const roleCls: Record<string, string> = {
   <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
     <div class="modal">
       <div class="modal-header">
-        <h2>New collection</h2>
+        <h2>{{ $t('collections.newCollectionModal') }}</h2>
         <button class="btn btn-ghost btn-sm" @click="showModal = false">✕</button>
       </div>
       <div v-if="error" class="alert alert-error">{{ error }}</div>
       <form class="form" @submit.prevent="create">
         <div class="field">
-          <label>Collection name</label>
-          <input v-model="newName" placeholder="posts" autofocus required />
+          <label>{{ $t('collections.collectionName') }}</label>
+          <input v-model="newName" :placeholder="$t('collections.collectionPlaceholder')" autofocus required />
         </div>
         <div class="field">
-          <label>Visibility</label>
+          <label>{{ $t('collections.visibility') }}</label>
           <select v-model="newVisibility">
-            <option value="public">public — no auth required</option>
-            <option value="protected">protected — API key required</option>
-            <option value="private">private — owner key only</option>
+            <option value="public">{{ $t('collections.visPublic') }}</option>
+            <option value="protected">{{ $t('collections.visProtected') }}</option>
+            <option value="private">{{ $t('collections.visPrivate') }}</option>
           </select>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" @click="showModal = false">Cancel</button>
+          <button type="button" class="btn btn-ghost" @click="showModal = false">{{ $t('common.cancel') }}</button>
           <button type="submit" class="btn btn-primary" :disabled="creating">
-            {{ creating ? 'Creating…' : 'Create collection' }}
+            {{ creating ? $t('collections.creating') : $t('collections.createCollection') }}
           </button>
         </div>
       </form>

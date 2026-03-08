@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { files as filesApi, projects, type MediaFile, type Project } from '../api/client'
 import FileTypeIcon from '../components/FileTypeIcon.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 const projectId = route.params.projectId as string
 
 const project = ref<Project | null>(null)
@@ -96,7 +98,7 @@ async function saveEdit() {
 }
 
 async function remove(f: MediaFile) {
-  if (!confirm(`Delete "${f.originalName}"?`)) return
+  if (!confirm(t('files.confirmDelete', { name: f.originalName }))) return
   await filesApi.delete(f.id)
   if (f.projectId) projectFiles.value = projectFiles.value.filter(x => x.id !== f.id)
   else globalFiles.value = globalFiles.value.filter(x => x.id !== f.id)
@@ -127,7 +129,7 @@ function fileType(f: MediaFile): string {
   if (map[f.mimeType]) return map[f.mimeType] as string
   const parts = f.mimeType.split('/')
   const sub = parts[1] ?? ''
-  return sub ? (sub.split('+')[0] ?? sub).toUpperCase().slice(0, 5) : '—'
+  return sub ? (sub.split('+')[0] ?? sub).toUpperCase().slice(0, 5) : '\u2014'
 }
 function fileUrl(url: string) { return url.startsWith('http') ? url : `http://localhost:3000${url}` }
 function formatSize(bytes: number) {
@@ -139,15 +141,15 @@ function formatSize(bytes: number) {
 <template>
   <div class="page" style="max-width:1200px">
     <div class="breadcrumb">
-      <RouterLink to="/">Projects</RouterLink>
+      <RouterLink to="/">{{ $t('nav.projects') }}</RouterLink>
       <span>/</span>
-      <RouterLink :to="`/projects/${projectId}`">Collections</RouterLink>
+      <RouterLink :to="`/projects/${projectId}`">{{ $t('nav.collections') }}</RouterLink>
       <span>/</span>
-      <span class="current">Files</span>
+      <span class="current">{{ $t('nav.files') }}</span>
     </div>
 
     <div class="page-header">
-      <h1>Media library</h1>
+      <h1>{{ $t('files.mediaLibrary') }}</h1>
     </div>
 
     <!-- Tabs -->
@@ -156,16 +158,16 @@ function formatSize(bytes: number) {
         class="btn btn-ghost"
         :style="tab === 'project' ? 'border-bottom:2px solid var(--accent);border-radius:0;color:var(--text)' : 'border-radius:0;color:var(--text-muted)'"
         @click="tab = 'project'"
-      >{{ project?.name ?? 'Project' }} files</button>
+      >{{ $t('files.projectFiles', { name: project?.name ?? 'Project' }) }}</button>
       <button
         class="btn btn-ghost"
         :style="tab === 'global' ? 'border-bottom:2px solid var(--accent);border-radius:0;color:var(--text)' : 'border-radius:0;color:var(--text-muted)'"
         @click="tab = 'global'"
-      >Global files</button>
+      >{{ $t('files.globalFiles') }}</button>
     </div>
 
     <div v-if="tab === 'global'" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:var(--text-muted)">
-      Global files are accessible from all projects.
+      {{ $t('files.globalHint') }}
     </div>
 
     <div v-if="uploadError" class="alert alert-error">{{ uploadError }}</div>
@@ -174,16 +176,16 @@ function formatSize(bytes: number) {
     <div style="margin-bottom:1.5rem">
       <input id="upload-input" type="file" style="display:none" @change="handleUpload" />
       <label for="upload-input" class="btn btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:0.5rem">
-        <span v-if="uploading">Uploading…</span>
-        <span v-else>+ Upload file</span>
+        <span v-if="uploading">{{ $t('files.uploading') }}</span>
+        <span v-else>{{ $t('files.uploadFile') }}</span>
       </label>
     </div>
 
-    <div v-if="loading" class="text-muted">Loading…</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
 
     <template v-else>
       <div v-if="currentFiles.length === 0" class="card">
-        <div class="card-empty">No files yet. Upload your first file above.</div>
+        <div class="card-empty">{{ $t('files.noFiles') }}</div>
       </div>
       <div v-else style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.875rem">
         <div
@@ -218,7 +220,7 @@ function formatSize(bytes: number) {
   <div v-if="editing" class="modal-overlay" @click.self="editing = null">
     <div class="modal" style="width:640px;max-height:90vh;display:flex;flex-direction:column">
       <div class="modal-header">
-        <h2>Edit file</h2>
+        <h2>{{ $t('files.editFile') }}</h2>
         <button class="btn btn-ghost btn-sm" @click="editing = null">✕</button>
       </div>
 
@@ -232,10 +234,10 @@ function formatSize(bytes: number) {
             </div>
           </div>
           <div style="font-size:0.8125rem;color:var(--text-muted);display:flex;flex-direction:column;gap:0.375rem">
-            <div><span style="color:var(--text)">Size</span><br/>{{ formatSize(editing.size) }}</div>
-            <div><span style="color:var(--text)">Type</span><br/>{{ editing.mimeType }}</div>
+            <div><span style="color:var(--text)">{{ $t('files.size') }}</span><br/>{{ formatSize(editing.size) }}</div>
+            <div><span style="color:var(--text)">{{ $t('files.type') }}</span><br/>{{ editing.mimeType }}</div>
             <div style="word-break:break-all">
-              <span style="color:var(--text)">Filename</span><br/>
+              <span style="color:var(--text)">{{ $t('files.filename') }}</span><br/>
               <a :href="fileUrl(editing.url)" target="_blank" style="color:var(--accent);font-size:0.75rem">{{ editing.url }}</a>
             </div>
           </div>
@@ -246,27 +248,27 @@ function formatSize(bytes: number) {
           <div v-if="saveError" class="alert alert-error" style="margin-bottom:0.75rem">{{ saveError }}</div>
           <form class="form" @submit.prevent="saveEdit" style="gap:0.625rem">
             <div class="field">
-              <label>Name</label>
-              <input v-model="editForm.name" placeholder="Image name" autofocus />
+              <label>{{ $t('files.name') }}</label>
+              <input v-model="editForm.name" :placeholder="$t('files.namePlaceholder')" autofocus />
             </div>
             <div class="field">
-              <label>Title</label>
-              <input v-model="editForm.title" placeholder="Display title" />
+              <label>{{ $t('files.titleLabel') }}</label>
+              <input v-model="editForm.title" :placeholder="$t('files.titlePlaceholder')" />
             </div>
             <div class="field">
-              <label>Alt text</label>
-              <input v-model="editForm.alt" placeholder="Describe the image" />
+              <label>{{ $t('files.altText') }}</label>
+              <input v-model="editForm.alt" :placeholder="$t('files.altPlaceholder')" />
             </div>
             <div class="field">
-              <label>Copyright</label>
-              <input v-model="editForm.copyright" placeholder="© Photographer name" />
+              <label>{{ $t('files.copyright') }}</label>
+              <input v-model="editForm.copyright" :placeholder="$t('files.copyrightPlaceholder')" />
             </div>
             <div class="field">
-              <label>Focus</label>
-              <input v-model="editForm.focus" placeholder="e.g. 50% 30%" />
+              <label>{{ $t('files.focus') }}</label>
+              <input v-model="editForm.focus" :placeholder="$t('files.focusPlaceholder')" />
             </div>
             <div class="field">
-              <label>Meta data <span class="text-muted">(JSON)</span></label>
+              <label>{{ $t('files.metaData') }}</label>
               <textarea v-model="editForm.metaData" rows="3" style="font-family:monospace;font-size:0.8125rem;resize:vertical" />
             </div>
           </form>
@@ -274,11 +276,11 @@ function formatSize(bytes: number) {
       </div>
 
       <div class="modal-footer" style="justify-content:space-between">
-        <button class="btn btn-danger btn-sm" @click="remove(editing!)">Delete</button>
+        <button class="btn btn-danger btn-sm" @click="remove(editing!)">{{ $t('files.delete') }}</button>
         <div class="flex-gap">
-          <button class="btn btn-ghost" @click="editing = null">Cancel</button>
+          <button class="btn btn-ghost" @click="editing = null">{{ $t('files.cancel') }}</button>
           <button class="btn btn-primary" :disabled="saving" @click="saveEdit">
-            {{ saving ? 'Saving…' : 'Save changes' }}
+            {{ saving ? $t('files.saving') : $t('files.saveChanges') }}
           </button>
         </div>
       </div>

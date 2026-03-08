@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, RouterLink, RouterView, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from './stores/auth'
 import { useTheme } from './composables/useTheme'
 import { projects } from './api/client'
 import UserAvatar from './components/UserAvatar.vue'
+import LanguageSwitcher from './components/LanguageSwitcher.vue'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const { preference, setTheme, LABELS, ICONS } = useTheme()
+const { t } = useI18n()
 
 const isPublic = computed(() => route.meta.public)
 const projectId = computed(() => route.params.projectId as string | undefined)
@@ -52,19 +55,19 @@ function logout() {
   <div v-else class="layout">
     <aside class="sidebar">
       <div class="sidebar-logo">⚡ APIForge</div>
-      <RouterLink to="/">Projects</RouterLink>
-      <RouterLink to="/team">Team</RouterLink>
+      <RouterLink to="/">{{ t('nav.projects') }}</RouterLink>
+      <RouterLink to="/team">{{ t('nav.team') }}</RouterLink>
 
       <!-- Project contextual nav -->
       <template v-if="projectId && projectName">
         <div class="sidebar-section-label">{{ projectName }}</div>
         <RouterLink :to="`/projects/${projectId}`" :class="{ 'router-link-active': route.path === `/projects/${projectId}` }">
-          Collections
+          {{ t('nav.collections') }}
         </RouterLink>
-        <RouterLink :to="`/projects/${projectId}/files`">Files</RouterLink>
-        <RouterLink :to="`/projects/${projectId}/docs`">API Docs</RouterLink>
-        <RouterLink v-if="projectIsOwner" :to="`/projects/${projectId}/keys`">API Keys</RouterLink>
-        <RouterLink v-if="projectIsOwner" :to="`/projects/${projectId}/members`">Team</RouterLink>
+        <RouterLink :to="`/projects/${projectId}/files`">{{ t('nav.files') }}</RouterLink>
+        <RouterLink :to="`/projects/${projectId}/docs`">{{ t('nav.apiDocs') }}</RouterLink>
+        <RouterLink v-if="projectIsOwner" :to="`/projects/${projectId}/keys`">{{ t('nav.apiKeys') }}</RouterLink>
+        <RouterLink v-if="projectIsOwner" :to="`/projects/${projectId}/members`">{{ t('nav.team') }}</RouterLink>
       </template>
 
       <div class="sidebar-bottom">
@@ -93,7 +96,8 @@ function logout() {
             <span>{{ ICONS[opt] }}</span>
           </button>
         </div>
-        <button class="btn btn-ghost" style="width:100%" @click="logout">Logout</button>
+        <LanguageSwitcher />
+        <button class="btn btn-ghost" style="width:100%" @click="logout">{{ t('nav.logout') }}</button>
       </div>
     </aside>
     <main class="main">

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { members as membersApi, type InvitationInfo } from '../api/client'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+useI18n()
 
 const token = route.query.token as string
 const invitation = ref<InvitationInfo | null>(null)
@@ -71,33 +73,31 @@ async function accept() {
   <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)">
     <div style="width:100%;max-width:420px;padding:2rem">
       <div class="card" style="padding:2rem;text-align:center">
-        <div v-if="loading" class="text-muted">Loading invitation…</div>
+        <div v-if="loading" class="text-muted">{{ $t('invitation.loading') }}</div>
 
         <template v-else-if="notFound">
           <div style="font-size:2rem;margin-bottom:1rem">🔗</div>
-          <h2 style="margin-bottom:0.5rem">Invalid invitation</h2>
-          <p class="text-muted">This invitation link is invalid or has expired.</p>
+          <h2 style="margin-bottom:0.5rem">{{ $t('invitation.invalidTitle') }}</h2>
+          <p class="text-muted">{{ $t('invitation.invalidDesc') }}</p>
           <RouterLink to="/" class="btn btn-primary" style="margin-top:1.5rem;display:inline-block">
-            Go to dashboard
+            {{ $t('invitation.goToDashboard') }}
           </RouterLink>
         </template>
 
         <template v-else-if="invitation">
           <div style="font-size:2rem;margin-bottom:1rem">📬</div>
-          <h2 style="margin-bottom:0.5rem">You've been invited</h2>
+          <h2 style="margin-bottom:0.5rem">{{ $t('invitation.invited') }}</h2>
           <p class="text-muted" style="margin-bottom:1.5rem">
-            Join <strong>{{ invitation.project.name }}</strong> as
-            <strong>{{ invitation.role }}</strong>
+            {{ $t('invitation.joinAs', { project: invitation.project.name, role: invitation.role }) }}
           </p>
 
           <!-- Wrong account warning -->
           <div v-if="wrongAccount" class="alert alert-error" style="margin-bottom:1.25rem;text-align:left">
-            <strong>Wrong account.</strong> This invitation was sent to
-            <strong>{{ invitation.email }}</strong>, but you're logged in as
-            <strong>{{ auth.user?.email }}</strong>.
+            <strong>{{ $t('invitation.wrongAccount') }}</strong>
+            {{ $t('invitation.wrongAccountDesc', { inviteEmail: invitation.email, currentEmail: auth.user?.email }) }}
             <div style="margin-top:0.75rem">
               <button class="btn btn-ghost btn-sm" @click="logoutAndContinue">
-                Log out and switch account
+                {{ $t('invitation.logoutSwitch') }}
               </button>
             </div>
           </div>
@@ -109,8 +109,7 @@ async function accept() {
             class="alert"
             style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.5rem;text-align:left;font-size:0.875rem"
           >
-            This invitation was sent to <strong>{{ invitation.email }}</strong>.
-            Log in with that address to accept.
+            {{ $t('invitation.loginToAccept', { email: invitation.email }) }}
           </div>
 
           <button
@@ -120,7 +119,7 @@ async function accept() {
             :disabled="accepting"
             @click="accept"
           >
-            {{ accepting ? 'Accepting…' : auth.isAuthenticated ? 'Accept invitation' : 'Log in to accept' }}
+            {{ accepting ? $t('invitation.accepting') : auth.isAuthenticated ? $t('invitation.acceptInvitation') : $t('invitation.loginToAcceptBtn') }}
           </button>
         </template>
       </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   records as recordsApi,
   fields as fieldsApi,
@@ -20,6 +21,7 @@ import RichTextEditor from '../components/RichTextEditor.vue'
 import { useProjectRole } from '../composables/useProjectRole'
 
 const route = useRoute()
+const { t } = useI18n()
 const projectId = route.params.projectId as string
 const collectionId = route.params.collectionId as string
 
@@ -285,7 +287,7 @@ async function save() {
 }
 
 async function remove(record: ApiRecord) {
-  if (!confirm('Delete this record?')) return
+  if (!confirm(t('data.confirmDelete'))) return
   deleting.value = record.id
   await recordsApi.delete(projectId, collection.value!.slug, record.id)
   recordList.value = recordList.value.filter(r => r.id !== record.id)
@@ -302,13 +304,13 @@ const columns = computed(() => [
 
 function displayValue(record: ApiRecord, key: string): string {
   const val = record[key]
-  if (val === null || val === undefined) return '—'
+  if (val === null || val === undefined) return '\u2014'
   if (Array.isArray(val)) return `[${val.length} linked]`
   if (typeof val === 'object' && (val as any).url) return (val as StoredFile).originalName
   if (typeof val === 'object') return JSON.stringify(val)
   if (typeof val === 'string' && val.startsWith('<')) {
     // strip HTML tags for table preview
-    return val.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) + (val.length > 80 ? '…' : '')
+    return val.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) + (val.length > 80 ? '\u2026' : '')
   }
   return String(val)
 }
@@ -333,56 +335,66 @@ function labelFor(_rel: Relation, record: ApiRecord): string {
   for (const c of candidates) {
     if (record[c]) return String(record[c])
   }
-  return record.id.slice(0, 8) + '…'
+  return record.id.slice(0, 8) + '\u2026'
 }
 
 const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
 const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
+
+function importResultText(): string {
+  if (!importResult.value) return ''
+  const n = importResult.value.imported ?? 0
+  const base = t('data.importedResult', n, { imported: n } as any)
+  if (importResult.value.skipped) {
+    return base + t('data.skipped', { skipped: importResult.value.skipped })
+  }
+  return base + '.'
+}
 </script>
 
 <template>
   <div class="page" style="max-width:1200px">
     <div class="breadcrumb">
-      <RouterLink to="/">Projects</RouterLink>
+      <RouterLink to="/">{{ $t('nav.projects') }}</RouterLink>
       <span>/</span>
-      <RouterLink :to="`/projects/${projectId}`">Collections</RouterLink>
+      <RouterLink :to="`/projects/${projectId}`">{{ $t('nav.collections') }}</RouterLink>
       <span>/</span>
       <RouterLink :to="`/projects/${projectId}/collections/${collectionId}`">
-        {{ collection?.name ?? '…' }}
+        {{ collection?.name ?? '\u2026' }}
       </RouterLink>
       <span>/</span>
-      <span class="current">Data</span>
+      <span class="current">{{ $t('data.title') }}</span>
     </div>
 
     <div class="page-header">
       <div>
-        <h1>{{ collection?.name }} data</h1>
-        <p class="text-muted" style="margin-top:0.25rem">{{ total }} records</p>
+        <h1>{{ collection?.name }} {{ $t('data.title').toLowerCase() }}</h1>
+        <p class="text-muted" style="margin-top:0.25rem">{{ $t('data.records', { count: total }) }}</p>
       </div>
       <div class="flex-gap">
-        <button class="btn btn-ghost btn-sm" @click="doExportJson">Export JSON</button>
-        <button class="btn btn-ghost btn-sm" @click="doExportCsv">Export CSV</button>
+        <button class="btn btn-ghost btn-sm" @click="doExportJson">{{ $t('data.exportJson') }}</button>
+        <button class="btn btn-ghost btn-sm" @click="doExportCsv">{{ $t('data.exportCsv') }}</button>
         <label v-if="canEdit()" class="btn btn-ghost btn-sm" style="cursor:pointer">
-          <span v-if="importing">Importing…</span>
-          <span v-else>Import</span>
+          <span v-if="importing">{{ $t('data.importing') }}</span>
+          <span v-else>{{ $t('data.import') }}</span>
           <input type="file" accept=".json,.csv" style="display:none" :disabled="importing" @change="handleImport" />
         </label>
-        <button v-if="canEdit()" class="btn btn-primary" @click="openCreate">+ Add record</button>
+        <button v-if="canEdit()" class="btn btn-primary" @click="openCreate">{{ $t('data.addRecord') }}</button>
       </div>
     </div>
 
     <div v-if="importResult" class="alert" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.625rem 0.875rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
-      <span>Imported {{ importResult.imported }} record{{ importResult.imported !== 1 ? 's' : '' }}<span v-if="importResult.skipped">, skipped {{ importResult.skipped }}</span>.</span>
+      <span>{{ importResultText() }}</span>
       <button class="btn btn-ghost btn-sm" @click="importResult = null">✕</button>
     </div>
 
-    <div v-if="loading" class="text-muted">Loading…</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
 
     <template v-else>
       <div v-if="fieldList.length === 0 && relationList.length === 0" class="card">
         <div class="card-empty">
-          This collection has no fields yet.
-          <RouterLink :to="`/projects/${projectId}/collections/${collectionId}`">Add fields first.</RouterLink>
+          {{ $t('data.noFields') }}
+          <RouterLink :to="`/projects/${projectId}/collections/${collectionId}`">{{ $t('data.addFieldsFirst') }}</RouterLink>
         </div>
       </div>
 
@@ -394,7 +406,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
                 v-for="col in columns" :key="col"
                 style="text-align:left;padding:0.5rem 0.75rem;color:var(--text-muted);font-weight:500;white-space:nowrap"
               >{{ col }}</th>
-              <th style="text-align:left;padding:0.5rem 0.75rem;color:var(--text-muted);font-weight:500">Created</th>
+              <th style="text-align:left;padding:0.5rem 0.75rem;color:var(--text-muted);font-weight:500">{{ $t('data.created') }}</th>
               <th style="width:100px"></th>
             </tr>
           </thead>
@@ -419,7 +431,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
                     <span>{{ fileValue(record, col)!.originalName }}</span>
                   </a>
                 </template>
-                <span v-else-if="displayValue(record, col) === '—'" class="text-muted">—</span>
+                <span v-else-if="displayValue(record, col) === '\u2014'" class="text-muted">&mdash;</span>
                 <span v-else>{{ displayValue(record, col) }}</span>
               </td>
               <td style="padding:0.625rem 0.75rem;color:var(--text-muted);white-space:nowrap">
@@ -427,14 +439,14 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
               </td>
               <td style="padding:0.625rem 0.75rem">
                 <div v-if="canEdit()" class="flex-gap">
-                  <button class="btn btn-ghost btn-sm" @click="openEdit(record)">Edit</button>
-                  <button class="btn btn-danger btn-sm" :disabled="deleting === record.id" @click="remove(record)">Delete</button>
+                  <button class="btn btn-ghost btn-sm" @click="openEdit(record)">{{ $t('common.edit') }}</button>
+                  <button class="btn btn-danger btn-sm" :disabled="deleting === record.id" @click="remove(record)">{{ $t('common.delete') }}</button>
                 </div>
               </td>
             </tr>
             <tr v-if="recordList.length === 0">
               <td :colspan="columns.length + 2" style="padding:2rem;text-align:center;color:var(--text-muted)">
-                No records yet.
+                {{ $t('data.noRecords') }}
               </td>
             </tr>
           </tbody>
@@ -442,10 +454,10 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
       </div>
 
       <div v-if="totalPages > 1" style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem">
-        <span class="text-muted">Page {{ currentPage }} of {{ totalPages }}</span>
+        <span class="text-muted">{{ $t('data.pageOf', { current: currentPage, total: totalPages }) }}</span>
         <div class="flex-gap">
-          <button class="btn btn-ghost btn-sm" :disabled="offset === 0" @click="goPage(-1)">← Prev</button>
-          <button class="btn btn-ghost btn-sm" :disabled="currentPage >= totalPages" @click="goPage(1)">Next →</button>
+          <button class="btn btn-ghost btn-sm" :disabled="offset === 0" @click="goPage(-1)">{{ $t('data.prevPage') }}</button>
+          <button class="btn btn-ghost btn-sm" :disabled="currentPage >= totalPages" @click="goPage(1)">{{ $t('data.nextPage') }}</button>
         </div>
       </div>
     </template>
@@ -455,7 +467,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
   <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
     <div class="modal" style="width:540px;max-height:85vh;overflow-y:auto">
       <div class="modal-header">
-        <h2>{{ editingRecord ? 'Edit record' : 'Add record' }}</h2>
+        <h2>{{ editingRecord ? $t('data.editRecord') : $t('data.addRecordModal') }}</h2>
         <button class="btn btn-ghost btn-sm" @click="showModal = false">✕</button>
       </div>
 
@@ -475,7 +487,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
           <div v-else-if="f.type === 'enum'" class="field">
             <label>{{ f.name }}<span v-if="f.required" style="color:var(--danger)">*</span></label>
             <select v-model="formData[f.name]" :required="f.required">
-              <option v-if="!f.required" value="">— none —</option>
+              <option v-if="!f.required" value="">&mdash; none &mdash;</option>
               <option v-for="v in f.enumValues" :key="v" :value="v">{{ v }}</option>
             </select>
           </div>
@@ -527,14 +539,14 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
                 <div style="font-size:0.875rem;font-weight:500">{{ (formData[f.name] as StoredFile).originalName }}</div>
                 <div class="text-muted" style="font-size:0.75rem">{{ ((formData[f.name] as StoredFile).size / 1024).toFixed(1) }} KB</div>
               </div>
-              <button type="button" class="btn btn-danger btn-sm" style="margin-left:auto" @click="formData[f.name] = null">Remove</button>
+              <button type="button" class="btn btn-danger btn-sm" style="margin-left:auto" @click="formData[f.name] = null">{{ $t('data.remove') }}</button>
             </div>
             <button
               type="button"
               class="btn btn-ghost"
               style="width:100%;border-style:dashed"
               @click="openPicker(f.name)"
-            >{{ formData[f.name] ? 'Replace file' : 'Choose from library' }}</button>
+            >{{ formData[f.name] ? $t('data.replaceFile') : $t('data.chooseFromLibrary') }}</button>
           </div>
 
           <!-- String (default) -->
@@ -554,7 +566,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
             <label>
               {{ rel.fieldName }}
               <span class="badge badge-gray" style="margin-left:0.375rem">{{ rel.relationType }}</span>
-              <span class="text-muted" style="font-size:0.75rem;margin-left:0.375rem">→ {{ rel.targetCollection.name }}</span>
+              <span class="text-muted" style="font-size:0.75rem;margin-left:0.375rem">&rarr; {{ rel.targetCollection.name }}</span>
             </label>
 
             <!-- one_to_one: single select -->
@@ -562,7 +574,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
               v-if="rel.relationType === 'one_to_one'"
               v-model="formData[rel.fieldName]"
             >
-              <option value="">— none —</option>
+              <option value="">&mdash; none &mdash;</option>
               <option
                 v-for="r in relatedRecords[rel.targetCollection.id]?.items ?? []"
                 :key="r.id"
@@ -593,7 +605,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
                 class="text-muted"
                 style="font-size:0.8125rem;padding:0.25rem 0"
               >
-                No records in {{ rel.targetCollection.name }} yet.
+                {{ $t('data.noRecordsInCollection', { name: rel.targetCollection.name }) }}
               </div>
             </div>
 
@@ -603,15 +615,15 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
               class="text-muted"
               style="font-size:0.8125rem;margin-top:0.25rem"
             >
-              {{ ((formData[rel.fieldName] as string[]) ?? []).length }} selected
+              {{ $t('data.selected', { count: ((formData[rel.fieldName] as string[]) ?? []).length }) }}
             </p>
           </div>
         </template>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" @click="showModal = false">Cancel</button>
+          <button type="button" class="btn btn-ghost" @click="showModal = false">{{ $t('data.cancel') }}</button>
           <button type="submit" class="btn btn-primary" :disabled="saving">
-            {{ saving ? 'Saving…' : (editingRecord ? 'Save changes' : 'Add record') }}
+            {{ saving ? $t('data.saving') : (editingRecord ? $t('data.saveChanges') : $t('data.addRecordModal')) }}
           </button>
         </div>
       </form>
@@ -622,7 +634,7 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
   <div v-if="showPicker" class="modal-overlay" @click.self="showPicker = false">
     <div class="modal" style="width:680px;max-height:85vh;display:flex;flex-direction:column">
       <div class="modal-header">
-        <h2>Choose file</h2>
+        <h2>{{ $t('data.chooseFileModal') }}</h2>
         <button class="btn btn-ghost btn-sm" @click="showPicker = false">✕</button>
       </div>
 
@@ -633,18 +645,18 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
             class="btn btn-ghost btn-sm"
             :style="pickerTab === 'all' ? 'background:var(--surface-2)' : ''"
             @click="pickerTab = 'all'"
-          >All</button>
+          >{{ $t('data.all') }}</button>
           <button
             class="btn btn-ghost btn-sm"
             :style="pickerTab === 'images' ? 'background:var(--surface-2)' : ''"
             @click="pickerTab = 'images'"
-          >Images</button>
+          >{{ $t('data.images') }}</button>
         </div>
         <div v-if="canEdit()">
           <input id="picker-upload" type="file" style="display:none" @change="handlePickerUpload" />
           <label for="picker-upload" class="btn btn-primary btn-sm" style="cursor:pointer">
-            <span v-if="pickerUploading">Uploading…</span>
-            <span v-else>+ Upload new</span>
+            <span v-if="pickerUploading">{{ $t('data.uploading') }}</span>
+            <span v-else>{{ $t('data.uploadNew') }}</span>
           </label>
         </div>
       </div>
@@ -653,9 +665,9 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
 
       <!-- File grid -->
       <div style="overflow-y:auto;flex:1;min-height:0">
-        <div v-if="pickerLoading" class="text-muted" style="padding:2rem;text-align:center">Loading…</div>
+        <div v-if="pickerLoading" class="text-muted" style="padding:2rem;text-align:center">{{ $t('common.loading') }}</div>
         <div v-else-if="filteredPickerFiles.length === 0" class="text-muted" style="padding:2rem;text-align:center">
-          No files yet. Upload one above.
+          {{ $t('data.noFilesYet') }}
         </div>
         <div v-else style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.75rem;padding:0.25rem">
           <div

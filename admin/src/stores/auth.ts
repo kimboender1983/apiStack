@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { auth, users, type CurrentUser } from '../api/client'
+import { setLocale, type Locale } from '../i18n'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
@@ -12,6 +13,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return
     try {
       user.value = await users.me()
+      if (user.value?.language && ['en', 'nl', 'de'].includes(user.value.language)) {
+        setLocale(user.value.language as Locale)
+      }
     } catch {
       // token invalid — clear it
       token.value = null

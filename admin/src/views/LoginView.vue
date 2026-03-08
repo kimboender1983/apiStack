@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const auth = useAuthStore()
+useI18n()
 
 const inviteEmail = sessionStorage.getItem('pendingInviteEmail') ?? ''
 const email = ref(inviteEmail)
@@ -52,30 +54,30 @@ async function verifyOtp() {
 <template>
   <div class="login-wrap">
     <div class="login-card">
-      <div class="login-logo">⚡ APIForge</div>
+      <div class="login-logo">{{ $t('login.title') }}</div>
 
       <div v-if="inviteEmail" class="alert" style="background:var(--surface-2);border:1px solid var(--border);margin-bottom:1rem;font-size:0.875rem">
-        Log in as <strong>{{ inviteEmail }}</strong> to accept your invitation.
+        {{ $t('login.invitePrompt', { email: inviteEmail }) }}
       </div>
 
       <div v-if="error" class="alert alert-error">{{ error }}</div>
 
       <form v-if="step === 'email'" class="form" @submit.prevent="requestOtp">
         <div class="field">
-          <label>Email address</label>
-          <input v-model="email" type="email" placeholder="you@example.com" autofocus required />
+          <label>{{ $t('login.emailLabel') }}</label>
+          <input v-model="email" type="email" :placeholder="$t('login.emailPlaceholder')" autofocus required />
         </div>
         <button class="btn btn-primary" type="submit" :disabled="loading">
-          {{ loading ? 'Sending…' : 'Send login code' }}
+          {{ loading ? $t('login.sending') : $t('login.sendCode') }}
         </button>
       </form>
 
       <form v-else class="form" @submit.prevent="verifyOtp">
         <p class="text-muted" style="font-size:0.875rem">
-          We sent a 6-digit code to <strong>{{ email }}</strong>
+          {{ $t('login.codeSentTo') }} <strong>{{ email }}</strong>
         </p>
         <div class="field">
-          <label>One-time code</label>
+          <label>{{ $t('login.otpLabel') }}</label>
           <input
             v-model="code"
             type="text"
@@ -87,10 +89,10 @@ async function verifyOtp() {
           />
         </div>
         <button class="btn btn-primary" type="submit" :disabled="loading">
-          {{ loading ? 'Verifying…' : 'Verify & login' }}
+          {{ loading ? $t('login.verifying') : $t('login.verifyLogin') }}
         </button>
         <button type="button" class="btn btn-ghost" @click="step = 'email'">
-          Use a different email
+          {{ $t('login.useDifferentEmail') }}
         </button>
       </form>
     </div>

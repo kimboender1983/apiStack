@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { VueDraggable } from 'vue-draggable-plus'
 import {
   fields as fieldsApi,
@@ -14,6 +15,7 @@ import {
 import { useProjectRole } from '../composables/useProjectRole'
 
 const route = useRoute()
+const { t } = useI18n()
 const projectId = route.params.projectId as string
 const collectionId = route.params.collectionId as string
 
@@ -103,7 +105,7 @@ async function saveField() {
 }
 
 async function deleteField(f: Field) {
-  if (!confirm(`Delete field "${f.name}"?`)) return
+  if (!confirm(t('collectionDetail.confirmDeleteField', { name: f.name }))) return
   await fieldsApi.delete(projectId, collectionId, f.id)
   fieldList.value = fieldList.value.filter(x => x.id !== f.id)
   if (editingField.value?.id === f.id) resetForm(false)
@@ -136,7 +138,7 @@ async function createRelation() {
 }
 
 async function deleteRelation(r: Relation) {
-  if (!confirm(`Delete relation "${r.fieldName}"?`)) return
+  if (!confirm(t('collectionDetail.confirmDeleteRelation', { name: r.fieldName }))) return
   await relationsApi.delete(projectId, collectionId, r.id)
   relationList.value = relationList.value.filter(x => x.id !== r.id)
 }
@@ -161,11 +163,11 @@ onMounted(async () => {
 const slug = computed(() => collection.value?.slug ?? '')
 const baseUrl = computed(() => `http://localhost:3000/api/${slug.value}`)
 const endpoints = computed(() => [
-  { method: 'GET',    path: `${baseUrl.value}`,     desc: 'List all records' },
-  { method: 'GET',    path: `${baseUrl.value}/:id`,  desc: 'Get one record' },
-  { method: 'POST',   path: `${baseUrl.value}`,     desc: 'Create a record' },
-  { method: 'PUT',    path: `${baseUrl.value}/:id`,  desc: 'Update a record' },
-  { method: 'DELETE', path: `${baseUrl.value}/:id`,  desc: 'Delete a record' },
+  { method: 'GET',    path: `${baseUrl.value}`,     descKey: 'collectionDetail.listAll' },
+  { method: 'GET',    path: `${baseUrl.value}/:id`,  descKey: 'collectionDetail.getOne' },
+  { method: 'POST',   path: `${baseUrl.value}`,     descKey: 'collectionDetail.createRecord' },
+  { method: 'PUT',    path: `${baseUrl.value}/:id`,  descKey: 'collectionDetail.updateRecord' },
+  { method: 'DELETE', path: `${baseUrl.value}/:id`,  descKey: 'collectionDetail.deleteRecord' },
 ])
 const methodColor: Record<string, string> = {
   GET: '#22c55e', POST: '#6c63ff', PUT: '#f59e0b', DELETE: '#ef4444',
@@ -177,28 +179,28 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
 <template>
   <div class="page">
     <div class="breadcrumb">
-      <RouterLink to="/">Projects</RouterLink>
+      <RouterLink to="/">{{ $t('nav.projects') }}</RouterLink>
       <span>/</span>
-      <RouterLink :to="`/projects/${projectId}`">Collections</RouterLink>
+      <RouterLink :to="`/projects/${projectId}`">{{ $t('nav.collections') }}</RouterLink>
       <span>/</span>
-      <span class="current">{{ collection?.name ?? '…' }}</span>
+      <span class="current">{{ collection?.name ?? '\u2026' }}</span>
     </div>
 
     <div class="page-header">
       <h1>{{ collection?.name }}</h1>
       <RouterLink :to="`/projects/${projectId}/collections/${collectionId}/data`" class="btn btn-primary">
-        Manage data →
+        {{ $t('collectionDetail.manageData') }}
       </RouterLink>
     </div>
 
-    <div v-if="loading" class="text-muted">Loading…</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
 
     <template v-else>
       <!-- Fields -->
       <div class="section">
         <div class="section-header">
-          <h3>Fields</h3>
-          <span v-if="canEdit()" class="text-muted" style="font-size:0.8125rem">Drag to reorder</span>
+          <h3>{{ $t('collectionDetail.fields') }}</h3>
+          <span v-if="canEdit()" class="text-muted" style="font-size:0.8125rem">{{ $t('collectionDetail.dragToReorder') }}</span>
         </div>
 
         <!-- Sortable field list -->
@@ -220,14 +222,14 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
                 v-if="canEdit()"
                 class="drag-handle"
                 style="cursor:grab;color:var(--text-muted);padding:0 0.375rem;font-size:1rem;user-select:none;touch-action:none"
-                title="Drag to reorder"
+                :title="$t('collectionDetail.dragToReorder')"
               >⠿</span>
               <span v-else style="padding:0 0.375rem;width:1.5rem;display:inline-block" />
 
               <div class="flex-gap" style="flex:1;flex-wrap:wrap;gap:0.375rem">
                 <span style="font-weight:500;font-family:monospace">{{ f.name }}</span>
                 <span class="badge badge-purple">{{ f.type }}</span>
-                <span v-if="f.required" class="badge badge-red">required</span>
+                <span v-if="f.required" class="badge badge-red">{{ $t('collectionDetail.required') }}</span>
                 <template v-if="f.type === 'enum' && f.enumValues?.length">
                   <span
                     v-for="v in f.enumValues"
@@ -239,20 +241,20 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
               </div>
 
               <div v-if="canEdit()" class="flex-gap">
-                <button class="btn btn-ghost btn-sm" @click="startEdit(f)">Edit</button>
-                <button class="btn btn-danger btn-sm" @click="deleteField(f)">Delete</button>
+                <button class="btn btn-ghost btn-sm" @click="startEdit(f)">{{ $t('common.edit') }}</button>
+                <button class="btn btn-danger btn-sm" @click="deleteField(f)">{{ $t('common.delete') }}</button>
               </div>
             </div>
           </VueDraggable>
           <div v-if="fieldList.length === 0" class="card-empty">
-            {{ canEdit() ? 'No fields yet — add one below.' : 'No fields yet.' }}
+            {{ canEdit() ? $t('collectionDetail.noFieldsEditor') : $t('collectionDetail.noFields') }}
           </div>
         </div>
 
         <!-- Inline add/edit form (editors only) -->
         <div v-if="canEdit()" style="border:1px solid var(--border);border-top:none;border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius);background:var(--surface-2);padding:0.875rem 1rem">
           <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.625rem">
-            {{ editingField ? `Editing: ${editingField.name}` : 'Add field' }}
+            {{ editingField ? $t('collectionDetail.editField', { name: editingField.name }) : $t('collectionDetail.addField') }}
           </div>
 
           <div v-if="fieldError" class="alert alert-error" style="margin-bottom:0.625rem;font-size:0.8125rem">{{ fieldError }}</div>
@@ -261,7 +263,7 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
             <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end">
               <!-- Name -->
               <div class="field" style="flex:1;min-width:140px;margin:0">
-                <label style="font-size:0.75rem">Name</label>
+                <label style="font-size:0.75rem">{{ $t('collectionDetail.name') }}</label>
                 <input
                   ref="nameInput"
                   v-model="fieldForm.name"
@@ -273,7 +275,7 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
 
               <!-- Type -->
               <div class="field" style="min-width:130px;margin:0">
-                <label style="font-size:0.75rem">Type</label>
+                <label style="font-size:0.75rem">{{ $t('collectionDetail.type') }}</label>
                 <select v-model="fieldForm.type">
                   <option v-for="t in fieldTypes" :key="t" :value="t">{{ t }}</option>
                 </select>
@@ -282,22 +284,22 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
               <!-- Required -->
               <div style="display:flex;align-items:center;gap:0.375rem;padding-bottom:0.25rem">
                 <input id="req" v-model="fieldForm.required" type="checkbox" style="width:auto" />
-                <label for="req" style="margin:0;cursor:pointer;font-size:0.875rem;white-space:nowrap">Required</label>
+                <label for="req" style="margin:0;cursor:pointer;font-size:0.875rem;white-space:nowrap">{{ $t('collectionDetail.required') }}</label>
               </div>
 
               <!-- Default value -->
               <div class="field" style="min-width:120px;margin:0">
-                <label style="font-size:0.75rem">Default <span class="text-muted">(optional)</span></label>
+                <label style="font-size:0.75rem">{{ $t('collectionDetail.defaultOptional') }}</label>
                 <input v-model="fieldForm.defaultValue" placeholder="e.g. false" />
               </div>
 
               <!-- Actions -->
               <div style="display:flex;gap:0.375rem;padding-bottom:0.125rem">
                 <button type="submit" class="btn btn-primary btn-sm" :disabled="savingField" style="white-space:nowrap">
-                  {{ savingField ? '…' : editingField ? 'Save changes' : '+ Add field' }}
+                  {{ savingField ? '\u2026' : editingField ? $t('collectionDetail.saveChanges') : $t('collectionDetail.addField') }}
                 </button>
                 <button v-if="editingField" type="button" class="btn btn-ghost btn-sm" @click="resetForm(false)">
-                  Cancel
+                  {{ $t('common.cancel') }}
                 </button>
               </div>
             </div>
@@ -307,11 +309,11 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
               <div style="display:flex;gap:0.5rem">
                 <input
                   v-model="fieldForm.enumInput"
-                  placeholder="Add a value…"
+                  :placeholder="$t('collectionDetail.addEnumValue')"
                   style="flex:1"
                   @keydown.enter.prevent="addEnumValue"
                 />
-                <button type="button" class="btn btn-ghost btn-sm" @click="addEnumValue">Add</button>
+                <button type="button" class="btn btn-ghost btn-sm" @click="addEnumValue">{{ $t('collectionDetail.add') }}</button>
               </div>
               <div v-if="fieldForm.enumValues!.length" style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.5rem">
                 <span
@@ -322,7 +324,7 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
                   @click="removeEnumValue(v)"
                 >{{ v }} ✕</span>
               </div>
-              <p v-else class="text-muted" style="font-size:0.8125rem;margin-top:0.25rem">No values yet.</p>
+              <p v-else class="text-muted" style="font-size:0.8125rem;margin-top:0.25rem">{{ $t('collectionDetail.noEnumValues') }}</p>
             </div>
           </form>
         </div>
@@ -331,30 +333,30 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
       <!-- Relations -->
       <div class="section">
         <div class="section-header">
-          <h3>Relations</h3>
+          <h3>{{ $t('collectionDetail.relations') }}</h3>
           <button
             v-if="canEdit()"
             class="btn btn-primary btn-sm"
             :disabled="allCollections.length === 0"
             @click="showRelationModal = true"
-          >+ Add relation</button>
+          >{{ $t('collectionDetail.addRelation') }}</button>
         </div>
         <div class="card">
           <div v-for="r in relationList" :key="r.id" class="card-row" style="cursor:default">
             <div class="flex-gap">
               <span style="font-weight:500;font-family:monospace">{{ r.fieldName }}</span>
               <span class="badge badge-gray">{{ r.relationType }}</span>
-              <span class="text-muted">→ {{ r.targetCollection?.name ?? r.targetCollectionId }}</span>
+              <span class="text-muted">&rarr; {{ r.targetCollection?.name ?? r.targetCollectionId }}</span>
             </div>
-            <button v-if="canEdit()" class="btn btn-danger btn-sm" @click="deleteRelation(r)">Delete</button>
+            <button v-if="canEdit()" class="btn btn-danger btn-sm" @click="deleteRelation(r)">{{ $t('common.delete') }}</button>
           </div>
-          <div v-if="relationList.length === 0" class="card-empty">No relations yet.</div>
+          <div v-if="relationList.length === 0" class="card-empty">{{ $t('collectionDetail.noRelations') }}</div>
         </div>
       </div>
 
       <!-- Generated Endpoints -->
       <div class="section">
-        <div class="section-header"><h3>Generated endpoints</h3></div>
+        <div class="section-header"><h3>{{ $t('collectionDetail.generatedEndpoints') }}</h3></div>
         <div class="card">
           <div v-for="e in endpoints" :key="e.method + e.path" class="card-row" style="cursor:default">
             <div class="flex-gap">
@@ -365,7 +367,7 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
               >{{ e.method }}</span>
               <code style="font-size:0.8125rem">{{ e.path }}</code>
             </div>
-            <span class="text-muted">{{ e.desc }}</span>
+            <span class="text-muted">{{ $t(e.descKey) }}</span>
           </div>
         </div>
         <div style="margin-top:0.75rem">
@@ -380,17 +382,17 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
   <div v-if="showRelationModal" class="modal-overlay" @click.self="showRelationModal = false">
     <div class="modal">
       <div class="modal-header">
-        <h2>Add relation</h2>
+        <h2>{{ $t('collectionDetail.addRelationModal') }}</h2>
         <button class="btn btn-ghost btn-sm" @click="showRelationModal = false">✕</button>
       </div>
       <div v-if="relationError" class="alert alert-error">{{ relationError }}</div>
       <form class="form" @submit.prevent="createRelation">
         <div class="field">
-          <label>Field name <span class="text-muted">(stored key)</span></label>
+          <label>{{ $t('collectionDetail.fieldName') }}</label>
           <input v-model="newRelation.fieldName" placeholder="authorId" required />
         </div>
         <div class="field">
-          <label>Relation type</label>
+          <label>{{ $t('collectionDetail.relationType') }}</label>
           <select v-model="newRelation.relationType">
             <option value="one_to_one">one_to_one</option>
             <option value="one_to_many">one_to_many</option>
@@ -398,16 +400,16 @@ const fieldTypes = ['string', 'text', 'richtext', 'integer', 'float', 'boolean',
           </select>
         </div>
         <div class="field">
-          <label>Target collection</label>
+          <label>{{ $t('collectionDetail.targetCollection') }}</label>
           <select v-model="newRelation.targetCollectionId" required>
-            <option value="">Select collection…</option>
+            <option value="">{{ $t('collectionDetail.selectCollection') }}</option>
             <option v-for="c in allCollections" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" @click="showRelationModal = false">Cancel</button>
+          <button type="button" class="btn btn-ghost" @click="showRelationModal = false">{{ $t('common.cancel') }}</button>
           <button type="submit" class="btn btn-primary" :disabled="creatingRelation">
-            {{ creatingRelation ? 'Adding…' : 'Add relation' }}
+            {{ creatingRelation ? $t('collectionDetail.adding') : $t('collectionDetail.addRelationBtn') }}
           </button>
         </div>
       </form>

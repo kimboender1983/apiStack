@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { projects, collections, apiKeys, type Project, type Collection, type ApiKey } from '../api/client'
 
 const route = useRoute()
+useI18n()
 const projectId = route.params.projectId as string
 
 const project = ref<Project | null>(null)
@@ -33,7 +35,7 @@ const selectedKey = computed(() =>
 )
 
 const apiKey = computed(() =>
-  selectedKey.value ? `apf_${selectedKey.value.keyPrefix}…` : 'YOUR_API_KEY'
+  selectedKey.value ? `apf_${selectedKey.value.keyPrefix}\u2026` : 'YOUR_API_KEY'
 )
 
 function copy(text: string, id: string) {
@@ -157,58 +159,58 @@ function downloadPostmanCollection() {
 <template>
   <div class="page" style="max-width:860px">
     <div class="breadcrumb">
-      <RouterLink to="/">Projects</RouterLink>
+      <RouterLink to="/">{{ $t('nav.projects') }}</RouterLink>
       <span>/</span>
-      <RouterLink :to="`/projects/${projectId}`">{{ project?.name ?? '…' }}</RouterLink>
+      <RouterLink :to="`/projects/${projectId}`">{{ project?.name ?? '\u2026' }}</RouterLink>
       <span>/</span>
-      <span class="current">API Docs</span>
+      <span class="current">{{ $t('nav.apiDocs') }}</span>
     </div>
 
     <div class="page-header">
-      <h1>API Documentation</h1>
+      <h1>{{ $t('docs.title') }}</h1>
       <button class="btn btn-primary" :disabled="loading" @click="downloadPostmanCollection">
-        Download Postman collection
+        {{ $t('docs.downloadPostman') }}
       </button>
     </div>
     <div style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1.5rem">
-      After importing, set the <code>apiKey</code> variable in Postman to your full key. The full key is only shown once when created — find it under <RouterLink :to="`/projects/${projectId}/keys`">API Keys</RouterLink>.
+      {{ $t('docs.postmanHint') }} <code>apiKey</code> {{ $t('docs.postmanHint2') }} <RouterLink :to="`/projects/${projectId}/keys`">{{ $t('nav.apiKeys') }}</RouterLink>.
     </div>
 
-    <div v-if="loading" class="text-muted">Loading…</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
 
     <template v-else>
 
       <!-- Key selector -->
       <div v-if="keyList.length" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:2rem;padding:0.875rem 1rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius)">
-        <span style="font-size:0.875rem;color:var(--text-muted);white-space:nowrap">Show examples using</span>
+        <span style="font-size:0.875rem;color:var(--text-muted);white-space:nowrap">{{ $t('docs.showExamplesUsing') }}</span>
         <select v-model="selectedKeyPrefix" style="flex:1;max-width:260px">
           <option v-for="k in keyList" :key="k.id" :value="k.keyPrefix">
-            {{ k.name ?? 'Unnamed' }} ({{ k.permissions }})
+            {{ k.name ?? $t('apiKeys.unnamed') }} ({{ k.permissions }})
           </option>
         </select>
         <span class="badge" style="font-family:monospace;font-size:0.8rem">{{ apiKey }}</span>
       </div>
       <div v-else style="margin-bottom:2rem" class="alert alert-error">
-        No API keys yet. <RouterLink :to="`/projects/${projectId}/keys`">Create one first.</RouterLink>
+        {{ $t('docs.noKeys') }} <RouterLink :to="`/projects/${projectId}/keys`">{{ $t('docs.createFirst') }}</RouterLink>
       </div>
 
       <!-- ── Authentication ── -->
       <section style="margin-bottom:2.5rem">
-        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:0.25rem">Authentication</h2>
-        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem">All requests must include your API key. Two methods are supported:</p>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:0.25rem">{{ $t('docs.authentication') }}</h2>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem">{{ $t('docs.authDesc') }}</p>
 
-        <h3 style="font-size:0.9375rem;font-weight:600;margin-bottom:0.5rem">Authorization header <span class="badge badge-green" style="font-size:0.7rem">Recommended</span></h3>
+        <h3 style="font-size:0.9375rem;font-weight:600;margin-bottom:0.5rem">{{ $t('docs.authHeader') }} <span class="badge badge-green" style="font-size:0.7rem">{{ $t('docs.recommended') }}</span></h3>
         <div class="code-block" style="position:relative">
           <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`Authorization: Bearer ${apiKey}`, 'header')">
-            {{ copied === 'header' ? 'Copied!' : 'Copy' }}
+            {{ copied === 'header' ? $t('common.copied') : $t('common.copy') }}
           </button>
           <span style="color:var(--text-muted)">Authorization:</span> Bearer {{ apiKey }}
         </div>
 
-        <h3 style="font-size:0.9375rem;font-weight:600;margin:1rem 0 0.5rem">Query parameter</h3>
+        <h3 style="font-size:0.9375rem;font-weight:600;margin:1rem 0 0.5rem">{{ $t('docs.queryParam') }}</h3>
         <div class="code-block" style="position:relative">
           <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`?apiKey=${apiKey}`, 'queryparam')">
-            {{ copied === 'queryparam' ? 'Copied!' : 'Copy' }}
+            {{ copied === 'queryparam' ? $t('common.copied') : $t('common.copy') }}
           </button>
           GET {{ BASE_URL }}/api/collection<span style="color:var(--accent)">?apiKey={{ apiKey }}</span>
         </div>
@@ -216,26 +218,26 @@ function downloadPostmanCollection() {
 
       <!-- ── Permissions ── -->
       <section style="margin-bottom:2.5rem">
-        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">Permissions</h2>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">{{ $t('docs.permissions') }}</h2>
         <table style="width:100%;border-collapse:collapse;font-size:0.875rem">
           <thead>
             <tr style="border-bottom:1px solid var(--border)">
-              <th style="text-align:left;padding:0.5rem 0.75rem;color:var(--text-muted);font-weight:500">Level</th>
-              <th style="text-align:left;padding:0.5rem 0.75rem;color:var(--text-muted);font-weight:500">Allowed</th>
+              <th style="text-align:left;padding:0.5rem 0.75rem;color:var(--text-muted);font-weight:500">{{ $t('docs.level') }}</th>
+              <th style="text-align:left;padding:0.5rem 0.75rem;color:var(--text-muted);font-weight:500">{{ $t('docs.allowed') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr style="border-bottom:1px solid var(--border)">
               <td style="padding:0.5rem 0.75rem"><span class="badge badge-gray">read</span></td>
-              <td style="padding:0.5rem 0.75rem;color:var(--text-muted)">GET only</td>
+              <td style="padding:0.5rem 0.75rem;color:var(--text-muted)">{{ $t('docs.readAllowed') }}</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border)">
               <td style="padding:0.5rem 0.75rem"><span class="badge badge-purple">write</span></td>
-              <td style="padding:0.5rem 0.75rem;color:var(--text-muted)">GET · POST · PUT · DELETE</td>
+              <td style="padding:0.5rem 0.75rem;color:var(--text-muted)">{{ $t('docs.writeAllowed') }}</td>
             </tr>
             <tr>
               <td style="padding:0.5rem 0.75rem"><span class="badge badge-red">admin</span></td>
-              <td style="padding:0.5rem 0.75rem;color:var(--text-muted)">Full access</td>
+              <td style="padding:0.5rem 0.75rem;color:var(--text-muted)">{{ $t('docs.adminAllowed') }}</td>
             </tr>
           </tbody>
         </table>
@@ -243,10 +245,10 @@ function downloadPostmanCollection() {
 
       <!-- ── Collections ── -->
       <section style="margin-bottom:2.5rem">
-        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">Endpoints</h2>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">{{ $t('docs.endpoints') }}</h2>
 
         <div v-if="collectionList.length === 0" class="card">
-          <div class="card-empty">No collections yet.</div>
+          <div class="card-empty">{{ $t('docs.noCollections') }}</div>
         </div>
 
         <div v-for="col in collectionList" :key="col.id" style="margin-bottom:2rem">
@@ -262,7 +264,7 @@ function downloadPostmanCollection() {
               <div style="display:flex;align-items:center;gap:0.75rem;padding:0.625rem 0.875rem;cursor:pointer" @click="copy(`curl ${collectionUrl(col.slug)} -H 'Authorization: Bearer ${apiKey}'`, `get-${col.id}`)">
                 <span style="background:#22c55e22;color:#22c55e;font-family:monospace;font-size:0.8rem;padding:0.15rem 0.5rem;border-radius:4px;min-width:52px;text-align:center;font-weight:600">GET</span>
                 <code style="font-size:0.8125rem;flex:1">{{ collectionUrl(col.slug) }}</code>
-                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `get-${col.id}` ? 'Copied!' : 'Copy curl' }}</span>
+                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `get-${col.id}` ? $t('common.copied') : $t('common.copyCurl') }}</span>
               </div>
             </div>
             <!-- GET single -->
@@ -270,7 +272,7 @@ function downloadPostmanCollection() {
               <div style="display:flex;align-items:center;gap:0.75rem;padding:0.625rem 0.875rem;cursor:pointer" @click="copy(`curl ${collectionUrl(col.slug)}/:id -H 'Authorization: Bearer ${apiKey}'`, `get1-${col.id}`)">
                 <span style="background:#22c55e22;color:#22c55e;font-family:monospace;font-size:0.8rem;padding:0.15rem 0.5rem;border-radius:4px;min-width:52px;text-align:center;font-weight:600">GET</span>
                 <code style="font-size:0.8125rem;flex:1">{{ collectionUrl(col.slug) }}/:id</code>
-                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `get1-${col.id}` ? 'Copied!' : 'Copy curl' }}</span>
+                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `get1-${col.id}` ? $t('common.copied') : $t('common.copyCurl') }}</span>
               </div>
             </div>
             <!-- POST -->
@@ -278,7 +280,7 @@ function downloadPostmanCollection() {
               <div style="display:flex;align-items:center;gap:0.75rem;padding:0.625rem 0.875rem;cursor:pointer" @click="copy(`curl ${collectionUrl(col.slug)} -X POST -H 'Authorization: Bearer ${apiKey}' -H 'Content-Type: application/json' -d '{}'`, `post-${col.id}`)">
                 <span style="background:#6c63ff22;color:#6c63ff;font-family:monospace;font-size:0.8rem;padding:0.15rem 0.5rem;border-radius:4px;min-width:52px;text-align:center;font-weight:600">POST</span>
                 <code style="font-size:0.8125rem;flex:1">{{ collectionUrl(col.slug) }}</code>
-                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `post-${col.id}` ? 'Copied!' : 'Copy curl' }}</span>
+                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `post-${col.id}` ? $t('common.copied') : $t('common.copyCurl') }}</span>
               </div>
             </div>
             <!-- PUT -->
@@ -286,7 +288,7 @@ function downloadPostmanCollection() {
               <div style="display:flex;align-items:center;gap:0.75rem;padding:0.625rem 0.875rem;cursor:pointer" @click="copy(`curl ${collectionUrl(col.slug)}/:id -X PUT -H 'Authorization: Bearer ${apiKey}' -H 'Content-Type: application/json' -d '{}'`, `put-${col.id}`)">
                 <span style="background:#f59e0b22;color:#f59e0b;font-family:monospace;font-size:0.8rem;padding:0.15rem 0.5rem;border-radius:4px;min-width:52px;text-align:center;font-weight:600">PUT</span>
                 <code style="font-size:0.8125rem;flex:1">{{ collectionUrl(col.slug) }}/:id</code>
-                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `put-${col.id}` ? 'Copied!' : 'Copy curl' }}</span>
+                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `put-${col.id}` ? $t('common.copied') : $t('common.copyCurl') }}</span>
               </div>
             </div>
             <!-- DELETE -->
@@ -294,7 +296,7 @@ function downloadPostmanCollection() {
               <div style="display:flex;align-items:center;gap:0.75rem;padding:0.625rem 0.875rem;cursor:pointer" @click="copy(`curl ${collectionUrl(col.slug)}/:id -X DELETE -H 'Authorization: Bearer ${apiKey}'`, `del-${col.id}`)">
                 <span style="background:#ef444422;color:#ef4444;font-family:monospace;font-size:0.8rem;padding:0.15rem 0.5rem;border-radius:4px;min-width:52px;text-align:center;font-weight:600">DELETE</span>
                 <code style="font-size:0.8125rem;flex:1">{{ collectionUrl(col.slug) }}/:id</code>
-                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `del-${col.id}` ? 'Copied!' : 'Copy curl' }}</span>
+                <span style="font-size:0.75rem;color:var(--text-muted)">{{ copied === `del-${col.id}` ? $t('common.copied') : $t('common.copyCurl') }}</span>
               </div>
             </div>
           </div>
@@ -303,31 +305,31 @@ function downloadPostmanCollection() {
 
       <!-- ── Filtering & Pagination ── -->
       <section style="margin-bottom:2.5rem">
-        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">Filtering, sorting &amp; pagination</h2>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">{{ $t('docs.filteringTitle') }}</h2>
         <div style="display:flex;flex-direction:column;gap:0.5rem">
           <div class="code-block" style="position:relative">
-            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?filter[field]=value`, 'filter')">{{ copied === 'filter' ? 'Copied!' : 'Copy' }}</button>
-            <span style="color:var(--text-muted)"># Filter by field value</span>
+            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?filter[field]=value`, 'filter')">{{ copied === 'filter' ? $t('common.copied') : $t('common.copy') }}</button>
+            <span style="color:var(--text-muted)">{{ $t('docs.filterComment') }}</span>
             {{ BASE_URL }}/api/{collection}?<span style="color:var(--accent)">filter[field]=value</span>
           </div>
           <div class="code-block" style="position:relative">
-            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?sort=-createdAt`, 'sort')">{{ copied === 'sort' ? 'Copied!' : 'Copy' }}</button>
-            <span style="color:var(--text-muted)"># Sort — prefix with - for descending</span>
+            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?sort=-createdAt`, 'sort')">{{ copied === 'sort' ? $t('common.copied') : $t('common.copy') }}</button>
+            <span style="color:var(--text-muted)">{{ $t('docs.sortComment') }}</span>
             {{ BASE_URL }}/api/{collection}?<span style="color:var(--accent)">sort=-createdAt</span>
           </div>
           <div class="code-block" style="position:relative">
-            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?limit=20&offset=40`, 'page')">{{ copied === 'page' ? 'Copied!' : 'Copy' }}</button>
-            <span style="color:var(--text-muted)"># Pagination</span>
+            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?limit=20&offset=40`, 'page')">{{ copied === 'page' ? $t('common.copied') : $t('common.copy') }}</button>
+            <span style="color:var(--text-muted)">{{ $t('docs.pageComment') }}</span>
             {{ BASE_URL }}/api/{collection}?<span style="color:var(--accent)">limit=20&amp;offset=40</span>
           </div>
           <div class="code-block" style="position:relative">
-            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?include=relation`, 'include')">{{ copied === 'include' ? 'Copied!' : 'Copy' }}</button>
-            <span style="color:var(--text-muted)"># Include related records</span>
+            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?include=relation`, 'include')">{{ copied === 'include' ? $t('common.copied') : $t('common.copy') }}</button>
+            <span style="color:var(--text-muted)">{{ $t('docs.includeComment') }}</span>
             {{ BASE_URL }}/api/{collection}?<span style="color:var(--accent)">include=relation</span>
           </div>
           <div class="code-block" style="position:relative">
-            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?filter[status]=active&sort=-createdAt&limit=10&offset=0`, 'combined')">{{ copied === 'combined' ? 'Copied!' : 'Copy' }}</button>
-            <span style="color:var(--text-muted)"># Combined</span>
+            <button class="btn btn-ghost btn-sm" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.75rem" @click="copy(`${BASE_URL}/api/{collection}?filter[status]=active&sort=-createdAt&limit=10&offset=0`, 'combined')">{{ copied === 'combined' ? $t('common.copied') : $t('common.copy') }}</button>
+            <span style="color:var(--text-muted)">{{ $t('docs.combinedComment') }}</span>
             {{ BASE_URL }}/api/{collection}?<span style="color:var(--accent)">filter[status]=active&amp;sort=-createdAt&amp;limit=10&amp;offset=0</span>
           </div>
         </div>
@@ -335,7 +337,7 @@ function downloadPostmanCollection() {
 
       <!-- ── Response format ── -->
       <section>
-        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">Response format</h2>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1rem">{{ $t('docs.responseFormat') }}</h2>
         <div class="code-block" style="white-space:pre;line-height:1.6">{{
 `// List response
 {

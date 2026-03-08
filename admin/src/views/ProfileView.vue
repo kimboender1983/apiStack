@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { users } from '../api/client'
 import UserAvatar from '../components/UserAvatar.vue'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 
 const auth = useAuthStore()
+useI18n()
 
 const name = ref(auth.user?.name ?? '')
 const saving = ref(false)
@@ -63,18 +66,18 @@ function triggerUpload() {
 <template>
   <div class="page">
     <div class="breadcrumb">
-      <span class="current">Profile</span>
+      <span class="current">{{ $t('profile.title') }}</span>
     </div>
 
     <div class="page-header">
-      <h1>Your profile</h1>
+      <h1>{{ $t('profile.title') }}</h1>
     </div>
 
     <div style="max-width:480px;display:flex;flex-direction:column;gap:1.5rem">
 
       <!-- Avatar section -->
       <div class="card" style="padding:1.5rem">
-        <h2 style="margin-bottom:1.25rem">Profile picture</h2>
+        <h2 style="margin-bottom:1.25rem">{{ $t('profile.profilePicture') }}</h2>
 
         <div style="display:flex;align-items:center;gap:1.5rem">
           <div style="position:relative;cursor:pointer" @click="triggerUpload">
@@ -89,12 +92,12 @@ function triggerUpload() {
               "
               onmouseenter="this.style.opacity=1"
               onmouseleave="this.style.opacity=0"
-            >Change</div>
+            >{{ $t('profile.change') }}</div>
           </div>
 
           <div>
             <p class="text-muted" style="font-size:0.875rem;margin-bottom:0.75rem">
-              Upload a square image. Max 5 MB.
+              {{ $t('profile.uploadHint') }}
             </p>
             <input
               id="avatar-input"
@@ -104,7 +107,7 @@ function triggerUpload() {
               @change="onAvatarChange"
             />
             <button class="btn btn-ghost" :disabled="uploading" @click="triggerUpload">
-              {{ uploading ? 'Uploading…' : 'Change picture' }}
+              {{ uploading ? $t('profile.uploading') : $t('profile.changePicture') }}
             </button>
           </div>
         </div>
@@ -116,27 +119,34 @@ function triggerUpload() {
 
       <!-- Name section -->
       <div class="card" style="padding:1.5rem">
-        <h2 style="margin-bottom:1.25rem">Display name</h2>
+        <h2 style="margin-bottom:1.25rem">{{ $t('profile.displayName') }}</h2>
 
         <div v-if="saveError" class="alert alert-error">{{ saveError }}</div>
-        <div v-if="saveSuccess" class="alert alert-success">Saved!</div>
+        <div v-if="saveSuccess" class="alert alert-success">{{ $t('profile.saved') }}</div>
 
         <form class="form" @submit.prevent="saveName">
           <div class="field">
-            <label>Full name</label>
-            <input v-model="name" placeholder="Your name" />
+            <label>{{ $t('profile.fullName') }}</label>
+            <input v-model="name" :placeholder="$t('profile.namePlaceholder')" />
           </div>
           <div class="field">
-            <label>Email address</label>
+            <label>{{ $t('profile.emailAddress') }}</label>
             <input :value="email" disabled style="opacity:0.6;cursor:not-allowed" />
-            <span class="text-muted" style="font-size:0.8rem">Email cannot be changed</span>
+            <span class="text-muted" style="font-size:0.8rem">{{ $t('profile.emailCannotChange') }}</span>
           </div>
           <div>
             <button type="submit" class="btn btn-primary" :disabled="saving">
-              {{ saving ? 'Saving…' : 'Save changes' }}
+              {{ saving ? $t('profile.saving') : $t('profile.saveChanges') }}
             </button>
           </div>
         </form>
+      </div>
+
+      <!-- Language section -->
+      <div class="card" style="padding:1.5rem">
+        <h2 style="margin-bottom:0.5rem">{{ $t('profile.language') }}</h2>
+        <p class="text-muted" style="font-size:0.875rem;margin-bottom:1rem">{{ $t('profile.languageHint') }}</p>
+        <LanguageSwitcher />
       </div>
 
     </div>

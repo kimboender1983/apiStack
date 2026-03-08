@@ -44,12 +44,13 @@ export interface CurrentUser {
   email: string
   name: string | null
   avatarUrl: string | null
+  language?: string
   createdAt: string
 }
 
 export const users = {
   me: (): Promise<CurrentUser> => request('/admin/me'),
-  updateMe: (data: { name?: string }): Promise<CurrentUser> =>
+  updateMe: (data: { name?: string; language?: string }): Promise<CurrentUser> =>
     request('/admin/me', { method: 'PATCH', body: JSON.stringify(data) }),
   uploadAvatar: async (file: File): Promise<CurrentUser> => {
     const token = localStorage.getItem('token')

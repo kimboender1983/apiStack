@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { projects, exportImport, type Project } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const auth = useAuthStore()
+const { t } = useI18n()
 const list = ref<Project[]>([])
 const loading = ref(true)
 const showModal = ref(false)
@@ -38,7 +40,7 @@ async function create() {
 }
 
 async function remove(p: Project) {
-  if (!confirm(`Delete project "${p.name}"? This will remove all collections and records.`)) return
+  if (!confirm(t('projects.confirmDelete', { name: p.name }))) return
   await projects.delete(p.id)
   list.value = list.value.filter(x => x.id !== p.id)
 }
@@ -56,7 +58,7 @@ async function handleProjectImport(p: Project, event: Event) {
   importingProject.value = p.id
   try {
     const result = await exportImport.importProject(p.id, file)
-    alert(`Import complete: ${result.collections} collection(s), ${result.records} record(s).`)
+    alert(t('projects.importComplete', { collections: result.collections, records: result.records }))
   } catch (e: any) {
     alert(e.message)
   } finally {
@@ -69,11 +71,11 @@ async function handleProjectImport(p: Project, event: Event) {
 <template>
   <div class="page">
     <div class="page-header">
-      <h1>Projects</h1>
-      <button class="btn btn-primary" @click="showModal = true">+ New project</button>
+      <h1>{{ $t('projects.title') }}</h1>
+      <button class="btn btn-primary" @click="showModal = true">{{ $t('projects.newProject') }}</button>
     </div>
 
-    <div v-if="loading" class="text-muted">Loading…</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
 
     <template v-else>
       <!-- My projects -->
@@ -90,14 +92,14 @@ async function handleProjectImport(p: Project, event: Event) {
               <div class="text-muted" style="font-size:0.8125rem">{{ p.slug }}</div>
             </div>
             <div class="flex-gap" @click.stop>
-              <span class="badge badge-purple">owner</span>
-              <button class="btn btn-ghost btn-sm" @click="exportImport.exportProject(p.id, p.name)">Export</button>
+              <span class="badge badge-purple">{{ $t('projects.ownerBadge') }}</span>
+              <button class="btn btn-ghost btn-sm" @click="exportImport.exportProject(p.id, p.name)">{{ $t('projects.export') }}</button>
               <label class="btn btn-ghost btn-sm" style="cursor:pointer">
-                <span v-if="importingProject === p.id">Importing…</span>
-                <span v-else>Import</span>
+                <span v-if="importingProject === p.id">{{ $t('projects.importing') }}</span>
+                <span v-else>{{ $t('projects.import') }}</span>
                 <input type="file" accept=".json" style="display:none" @change="handleProjectImport(p, $event)" />
               </label>
-              <button class="btn btn-danger btn-sm" @click="remove(p)">Delete</button>
+              <button class="btn btn-danger btn-sm" @click="remove(p)">{{ $t('common.delete') }}</button>
             </div>
           </div>
         </div>
@@ -106,7 +108,7 @@ async function handleProjectImport(p: Project, event: Event) {
       <!-- Shared with me -->
       <div v-if="sharedProjects.length > 0" class="section">
         <div class="section-header">
-          <h3>Shared with me</h3>
+          <h3>{{ $t('projects.sharedWithMe') }}</h3>
         </div>
         <div class="card">
           <div
@@ -117,17 +119,17 @@ async function handleProjectImport(p: Project, event: Event) {
           >
             <div>
               <div style="font-weight:500">{{ p.name }}</div>
-              <div class="text-muted" style="font-size:0.8125rem">by {{ ownerLabel(p) }}</div>
+              <div class="text-muted" style="font-size:0.8125rem">{{ $t('projects.byOwner', { owner: ownerLabel(p) }) }}</div>
             </div>
             <div class="flex-gap" @click.stop>
-              <span class="badge badge-gray">member</span>
+              <span class="badge badge-gray">{{ $t('projects.memberBadge') }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <div v-if="list.length === 0" class="card">
-        <div class="card-empty">No projects yet. Create your first one.</div>
+        <div class="card-empty">{{ $t('projects.noProjects') }}</div>
       </div>
     </template>
   </div>
@@ -136,19 +138,19 @@ async function handleProjectImport(p: Project, event: Event) {
   <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
     <div class="modal">
       <div class="modal-header">
-        <h2>New project</h2>
+        <h2>{{ $t('projects.newProjectModal') }}</h2>
         <button class="btn btn-ghost btn-sm" @click="showModal = false">✕</button>
       </div>
       <div v-if="error" class="alert alert-error">{{ error }}</div>
       <form class="form" @submit.prevent="create">
         <div class="field">
-          <label>Project name</label>
-          <input v-model="newName" placeholder="My App" autofocus required />
+          <label>{{ $t('projects.projectName') }}</label>
+          <input v-model="newName" :placeholder="$t('projects.projectPlaceholder')" autofocus required />
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" @click="showModal = false">Cancel</button>
+          <button type="button" class="btn btn-ghost" @click="showModal = false">{{ $t('common.cancel') }}</button>
           <button type="submit" class="btn btn-primary" :disabled="creating">
-            {{ creating ? 'Creating…' : 'Create project' }}
+            {{ creating ? $t('projects.creating') : $t('projects.createProject') }}
           </button>
         </div>
       </form>

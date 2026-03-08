@@ -8,19 +8,24 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AuthUser } from '../../common/decorators/project.decorator';
 import { JwtGuard } from '../../common/guards/jwt.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../uploads/storage.service';
 
-const USER_SELECT = { id: true, email: true, name: true, avatarUrl: true, createdAt: true };
+const USER_SELECT = { id: true, email: true, name: true, avatarUrl: true, language: true, createdAt: true };
 
 class UpdateMeDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['en', 'nl', 'de'])
+  language?: string;
 }
 
 @Controller('admin/me')
@@ -40,7 +45,7 @@ export class UsersController {
   updateMe(@AuthUser() user: { id: string }, @Body() dto: UpdateMeDto) {
     return this.prisma.user.update({
       where: { id: user.id },
-      data: { name: dto.name },
+      data: { name: dto.name, language: dto.language },
       select: USER_SELECT,
     });
   }
