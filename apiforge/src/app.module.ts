@@ -15,6 +15,7 @@ import { FilesModule } from './modules/files/files.module';
 import { MembersModule } from './modules/members/members.module';
 import { UsersModule } from './modules/users/users.module';
 import { TeamModule } from './modules/team/team.module';
+import { ExportImportModule } from './modules/export-import/export-import.module';
 
 @Module({
   controllers: [HealthController],
@@ -34,6 +35,7 @@ import { TeamModule } from './modules/team/team.module';
     MembersModule,
     UsersModule,
     TeamModule,
+    ExportImportModule,
   ],
 })
 export class AppModule {}

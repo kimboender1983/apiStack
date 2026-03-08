@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { projects, type Project } from '../api/client'
+import { projects, exportImport, type Project } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
@@ -46,6 +46,24 @@ async function remove(p: Project) {
 function ownerLabel(p: Project) {
   return p.user.name || p.user.email
 }
+
+const importingProject = ref<string | null>(null)
+
+async function handleProjectImport(p: Project, event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  importingProject.value = p.id
+  try {
+    const result = await exportImport.importProject(p.id, file)
+    alert(`Import complete: ${result.collections} collection(s), ${result.records} record(s).`)
+  } catch (e: any) {
+    alert(e.message)
+  } finally {
+    importingProject.value = null
+    input.value = ''
+  }
+}
 </script>
 
 <template>
@@ -73,6 +91,12 @@ function ownerLabel(p: Project) {
             </div>
             <div class="flex-gap" @click.stop>
               <span class="badge badge-purple">owner</span>
+              <button class="btn btn-ghost btn-sm" @click="exportImport.exportProject(p.id, p.name)">Export</button>
+              <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+                <span v-if="importingProject === p.id">Importing…</span>
+                <span v-else>Import</span>
+                <input type="file" accept=".json" style="display:none" @change="handleProjectImport(p, $event)" />
+              </label>
               <button class="btn btn-danger btn-sm" @click="remove(p)">Delete</button>
             </div>
           </div>

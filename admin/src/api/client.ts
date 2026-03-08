@@ -434,3 +434,53 @@ export const records = {
       method: 'DELETE',
     }),
 }
+
+// ── Export / Import ───────────────────────────────────────────────────────────
+
+async function downloadFile(path: string, filename: string): Promise<void> {
+  const token = localStorage.getItem('token')
+  const res = await fetch(`${BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) throw new Error('Export failed')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function uploadImport(path: string, file: File): Promise<{ imported?: number; skipped?: number; collections?: number; records?: number }> {
+  const token = localStorage.getItem('token')
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as any).message ?? 'Import failed')
+  }
+  return res.json()
+}
+
+export const exportImport = {
+  exportCollectionJson: (projectId: string, slug: string) =>
+    downloadFile(`/admin/projects/${projectId}/collections/${slug}/export?format=json`, `${slug}.json`),
+
+  exportCollectionCsv: (projectId: string, slug: string) =>
+    downloadFile(`/admin/projects/${projectId}/collections/${slug}/export?format=csv`, `${slug}.csv`),
+
+  importCollection: (projectId: string, slug: string, file: File) =>
+    uploadImport(`/admin/projects/${projectId}/collections/${slug}/import`, file),
+
+  exportProject: (projectId: string, projectName: string) =>
+    downloadFile(`/admin/projects/${projectId}/export`, `${projectName}-export.json`),
+
+  importProject: (projectId: string, file: File) =>
+    uploadImport(`/admin/projects/${projectId}/import`, file),
+}

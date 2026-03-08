@@ -7,6 +7,7 @@ import {
   relations as relationsApi,
   collections,
   files as filesApi,
+  exportImport,
   type ApiRecord,
   type Field,
   type StoredFile,
@@ -44,6 +45,39 @@ const formError = ref('')
 
 // Delete
 const deleting = ref<string | null>(null)
+
+// Export / Import
+const importing = ref(false)
+const importResult = ref<{ imported?: number; skipped?: number } | null>(null)
+
+async function doExportJson() {
+  if (!collection.value) return
+  await exportImport.exportCollectionJson(projectId, collection.value.slug)
+}
+
+async function doExportCsv() {
+  if (!collection.value) return
+  await exportImport.exportCollectionCsv(projectId, collection.value.slug)
+}
+
+async function handleImport(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !collection.value) return
+  importing.value = true
+  importResult.value = null
+  try {
+    const result = await exportImport.importCollection(projectId, collection.value.slug, file)
+    importResult.value = result
+    await loadRecords()
+  } catch (e: any) {
+    importResult.value = null
+    alert(e.message)
+  } finally {
+    importing.value = false
+    input.value = ''
+  }
+}
 
 onMounted(async () => {
   const [col, fl, rl] = await Promise.all([
@@ -325,7 +359,21 @@ const currentPage = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)
         <h1>{{ collection?.name }} data</h1>
         <p class="text-muted" style="margin-top:0.25rem">{{ total }} records</p>
       </div>
-      <button v-if="canEdit()" class="btn btn-primary" @click="openCreate">+ Add record</button>
+      <div class="flex-gap">
+        <button class="btn btn-ghost btn-sm" @click="doExportJson">Export JSON</button>
+        <button class="btn btn-ghost btn-sm" @click="doExportCsv">Export CSV</button>
+        <label v-if="canEdit()" class="btn btn-ghost btn-sm" style="cursor:pointer">
+          <span v-if="importing">Importing…</span>
+          <span v-else>Import</span>
+          <input type="file" accept=".json,.csv" style="display:none" :disabled="importing" @change="handleImport" />
+        </label>
+        <button v-if="canEdit()" class="btn btn-primary" @click="openCreate">+ Add record</button>
+      </div>
+    </div>
+
+    <div v-if="importResult" class="alert" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:0.625rem 0.875rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
+      <span>Imported {{ importResult.imported }} record{{ importResult.imported !== 1 ? 's' : '' }}<span v-if="importResult.skipped">, skipped {{ importResult.skipped }}</span>.</span>
+      <button class="btn btn-ghost btn-sm" @click="importResult = null">✕</button>
     </div>
 
     <div v-if="loading" class="text-muted">Loading…</div>
