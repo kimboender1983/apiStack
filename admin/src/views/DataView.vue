@@ -7,7 +7,7 @@ import {
   relations as relationsApi,
   collections,
   files as filesApi,
-  type Record,
+  type ApiRecord,
   type Field,
   type StoredFile,
   type MediaFile,
@@ -28,8 +28,8 @@ const collection = ref<Collection | null>(null)
 const fieldList = ref<Field[]>([])
 const relationList = ref<Relation[]>([])
 // Map of targetCollectionId → { records, slug }
-const relatedRecords = ref<Record<string, { slug: string; items: Record[] }>>({})
-const recordList = ref<Record[]>([])
+const relatedRecords = ref<Record<string, { slug: string; items: ApiRecord[] }>>({})
+const recordList = ref<ApiRecord[]>([])
 const total = ref(0)
 const loading = ref(true)
 const PAGE_SIZE = 20
@@ -37,7 +37,7 @@ const offset = ref(0)
 
 // Modal
 const showModal = ref(false)
-const editingRecord = ref<Record | null>(null)
+const editingRecord = ref<ApiRecord | null>(null)
 const formData = ref<Record<string, unknown>>({})
 const saving = ref(false)
 const formError = ref('')
@@ -101,7 +101,7 @@ function buildEmptyForm(): Record<string, unknown> {
   return obj
 }
 
-function buildFormFromRecord(record: Record): Record<string, unknown> {
+function buildFormFromRecord(record: ApiRecord): Record<string, unknown> {
   const obj: Record<string, unknown> = {}
   for (const f of fieldList.value) {
     const val = record[f.name]
@@ -221,7 +221,7 @@ function openCreate() {
   showModal.value = true
 }
 
-function openEdit(record: Record) {
+function openEdit(record: ApiRecord) {
   editingRecord.value = record
   formData.value = buildFormFromRecord(record)
   formError.value = ''
@@ -250,7 +250,7 @@ async function save() {
   }
 }
 
-async function remove(record: Record) {
+async function remove(record: ApiRecord) {
   if (!confirm('Delete this record?')) return
   deleting.value = record.id
   await recordsApi.delete(projectId, collection.value!.slug, record.id)
@@ -266,7 +266,7 @@ const columns = computed(() => [
   ...relationList.value.map(r => r.fieldName),
 ])
 
-function displayValue(record: Record, key: string): string {
+function displayValue(record: ApiRecord, key: string): string {
   const val = record[key]
   if (val === null || val === undefined) return '—'
   if (Array.isArray(val)) return `[${val.length} linked]`
@@ -293,7 +293,7 @@ function fileUrl(url: string): string {
   return url.startsWith('http') ? url : `http://localhost:3000${url}`
 }
 
-function labelFor(rel: Relation, record: Record): string {
+function labelFor(_rel: Relation, record: ApiRecord): string {
   // Try to find a meaningful label field: name, title, label, or fallback to id
   const candidates = ['name', 'title', 'label', 'slug']
   for (const c of candidates) {

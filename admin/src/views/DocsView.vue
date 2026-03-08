@@ -24,7 +24,7 @@ onMounted(async () => {
   project.value = p
   collectionList.value = cols
   keyList.value = keys
-  if (keys.length) selectedKeyPrefix.value = keys[0].keyPrefix
+  if (keys.length) selectedKeyPrefix.value = keys[0]?.keyPrefix ?? ''
   loading.value = false
 })
 

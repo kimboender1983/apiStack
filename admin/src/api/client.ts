@@ -402,7 +402,7 @@ export const team = {
 
 // ── Records (admin) ───────────────────────────────────────────────────────────
 
-export interface Record {
+export interface ApiRecord {
   id: string
   createdAt: string
   updatedAt: string
@@ -410,7 +410,7 @@ export interface Record {
 }
 
 export interface RecordList {
-  data: Record[]
+  data: ApiRecord[]
   meta: { total: number; limit: number; offset: number }
 }
 
@@ -419,12 +419,12 @@ export const records = {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
     return request(`/admin/projects/${projectId}/collections/${collectionSlug}/records${qs}`)
   },
-  create: (projectId: string, collectionSlug: string, data: Record<string, unknown>): Promise<Record> =>
+  create: (projectId: string, collectionSlug: string, data: Record<string, unknown>): Promise<ApiRecord> =>
     request(`/admin/projects/${projectId}/collections/${collectionSlug}/records`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (projectId: string, collectionSlug: string, id: string, data: Record<string, unknown>): Promise<Record> =>
+  update: (projectId: string, collectionSlug: string, id: string, data: Record<string, unknown>): Promise<ApiRecord> =>
     request(`/admin/projects/${projectId}/collections/${collectionSlug}/records/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

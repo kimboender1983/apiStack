@@ -124,9 +124,10 @@ function fileType(f: MediaFile): string {
     'image/gif': 'GIF',
     'image/webp': 'WEBP',
   }
-  if (map[f.mimeType]) return map[f.mimeType]
-  const sub = f.mimeType.split('/')[1]
-  return sub ? sub.split('+')[0].toUpperCase().slice(0, 5) : '—'
+  if (map[f.mimeType]) return map[f.mimeType] as string
+  const parts = f.mimeType.split('/')
+  const sub = parts[1] ?? ''
+  return sub ? (sub.split('+')[0] ?? sub).toUpperCase().slice(0, 5) : '—'
 }
 function fileUrl(url: string) { return url.startsWith('http') ? url : `http://localhost:3000${url}` }
 function formatSize(bytes: number) {
