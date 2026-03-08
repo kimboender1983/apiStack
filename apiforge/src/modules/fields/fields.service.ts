@@ -71,7 +71,7 @@ export class FieldsService {
         defaultValue: payload.defaultValue,
         enumValues: type === 'enum'
           ? (payload.enumValues ?? (field.enumValues as string[]))
-          : Prisma.JsonNull,
+          : null as any,
       },
     });
   }

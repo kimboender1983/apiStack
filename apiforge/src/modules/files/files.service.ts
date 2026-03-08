@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Readable } from 'stream';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../uploads/storage.service';
 
@@ -39,7 +38,7 @@ export class FilesService {
       where: { id },
       data: {
         ...rest,
-        ...(metaData !== undefined ? { metaData: metaData as Prisma.InputJsonValue } : {}),
+        ...(metaData !== undefined ? { metaData: metaData as any } : {}),
       },
     });
   }

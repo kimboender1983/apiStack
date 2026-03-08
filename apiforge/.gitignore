@@ -14,7 +14,7 @@ prisma.config.d.ts
 tsconfig.build.tsbuildinfo
 
 # Local file uploads (use R2/S3 in production)
-uploads/
+/uploads/
 
 # Prisma generated client
 /generated/prisma

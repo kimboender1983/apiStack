@@ -62,7 +62,7 @@ export class RecordsService {
     const data = this.validateAndCoerce(body, schema);
 
     const record = await this.prisma.record.create({
-      data: { projectId, collectionId: schema.id, data: data as Prisma.InputJsonValue },
+      data: { projectId, collectionId: schema.id, data: data as any },
     });
 
     return { id: record.id, ...this.safeData(record.data), createdAt: record.createdAt, updatedAt: record.updatedAt };
@@ -86,7 +86,7 @@ export class RecordsService {
 
     const record = await this.prisma.record.update({
       where: { id },
-      data: { data: data as Prisma.InputJsonValue },
+      data: { data: data as any },
     });
 
     return { id: record.id, ...this.safeData(record.data), createdAt: record.createdAt, updatedAt: record.updatedAt };
