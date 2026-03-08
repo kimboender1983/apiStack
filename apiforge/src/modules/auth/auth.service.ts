@@ -20,6 +20,10 @@ export class AuthService {
     this.transporter = nodemailer.createTransport({
       host: config.get<string>('SMTP_HOST'),
       port: config.get<number>('SMTP_PORT', 587),
+      secure: config.get<number>('SMTP_PORT', 587) === 465,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
       auth: {
         user: config.get<string>('SMTP_USER'),
         pass: config.get<string>('SMTP_PASS'),
@@ -47,13 +51,20 @@ export class AuthService {
       return;
     }
 
-    await this.transporter.sendMail({
-      from: this.config.get<string>('SMTP_FROM', 'noreply@apiforge.dev'),
-      to: email,
-      subject: 'Your APIForge login code',
-      text: `Your one-time login code is: ${code}\n\nThis code expires in ${ttlMinutes} minutes.`,
-      html: `<p>Your APIForge login code is: <strong>${code}</strong></p><p>Expires in ${ttlMinutes} minutes.</p>`,
-    });
+    console.log(`[Auth] Sending OTP email to ${email} via ${this.config.get('SMTP_HOST')}:${this.config.get('SMTP_PORT')}`);
+    try {
+      await this.transporter.sendMail({
+        from: this.config.get<string>('SMTP_FROM', 'noreply@apiforge.dev'),
+        to: email,
+        subject: 'Your APIForge login code',
+        text: `Your one-time login code is: ${code}\n\nThis code expires in ${ttlMinutes} minutes.`,
+        html: `<p>Your APIForge login code is: <strong>${code}</strong></p><p>Expires in ${ttlMinutes} minutes.</p>`,
+      });
+      console.log(`[Auth] OTP email sent to ${email}`);
+    } catch (err) {
+      console.error(`[Auth] Failed to send OTP email:`, err);
+      throw err;
+    }
   }
 
   async verifyOtp(email: string, code: string): Promise<{ accessToken: string }> {
