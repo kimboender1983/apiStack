@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+
+# Environment variables — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+dist
+prisma.config.js
+prisma.config.js.map
+prisma.config.d.ts
+tsconfig.build.tsbuildinfo
+
+# Local file uploads (use R2/S3 in production)
+uploads/
+
+# Prisma generated client
+/generated/prisma
+
+# Editor & OS
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.sw?

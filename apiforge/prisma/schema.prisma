@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  projects    Project[]
+  memberships ProjectMember[]
+
+  @@map("users")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("otp_codes")
+}
+
+model Project {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collections Collection[]
+  apiKeys     ApiKey[]
+  records     Record[]
+  files       File[]
+  members     ProjectMember[]
+  invitations Invitation[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model Collection {
+  id         String   @id @default(uuid())
+  projectId  String
+  name       String
+  slug       String
+  visibility String   @default("protected") // public | protected | private
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fields        Field[]
+  relationsFrom Relation[] @relation("RelationFrom")
+  relationsTo   Relation[] @relation("RelationTo")
+  records       Record[]
+
+  @@unique([projectId, slug])
+  @@map("collections")
+}
+
+model Field {
+  id           String   @id @default(uuid())
+  collectionId String
+  name         String
+  type         String   // string | text | richtext | integer | float | boolean | date | datetime | json | enum | file
+  required     Boolean  @default(false)
+  defaultValue String?
+  enumValues   Json?    // string[] — only set when type = "enum"
+  position     Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, name])
+  @@map("fields")
+}
+
+model Relation {
+  id                 String   @id @default(uuid())
+  collectionId       String
+  fieldName          String   // the key stored in record JSONB (e.g. "authorId")
+  relationType       String   // one_to_one | one_to_many | many_to_many
+  targetCollectionId String
+  createdAt          DateTime @default(now())
+
+  collection       Collection @relation("RelationFrom", fields: [collectionId], references: [id], onDelete: Cascade)
+  targetCollection Collection @relation("RelationTo", fields: [targetCollectionId], references: [id])
+
+  @@map("relations")
+}
+
+model Record {
+  id           String   @id @default(uuid())
+  projectId    String
+  collectionId String
+  data         Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, collectionId])
+  @@map("records")
+}
+
+model File {
+  id           String   @id @default(uuid())
+  projectId    String?  // null = global (available to all projects)
+  url          String
+  filename     String
+  originalName String
+  size         Int
+  mimeType     String
+  name         String   @default("")
+  title        String   @default("")
+  alt          String   @default("")
+  copyright    String   @default("")
+  focus        String   @default("")
+  metaData     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("files")
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  role      String   @default("viewer") // owner | editor | viewer
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Invitation {
+  id         String    @id @default(uuid())
+  projectId  String
+  email      String
+  role       String    @default("viewer") // editor | viewer
+  token      String    @unique @default(uuid())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, email])
+  @@map("invitations")
+}
+
+model ApiKey {
+  id                 String    @id @default(uuid())
+  projectId          String
+  keyHash            String    @unique
+  keyPrefix          String    // first 8 chars for lookup
+  name               String?
+  permissions        String    @default("read") // read | write | admin
+  rateLimitPerMinute Int       @default(60)
+  rateLimitPerHour   Int       @default(1000)
+  expiresAt          DateTime?
+  lastUsedAt         DateTime?
+  createdAt          DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([keyPrefix])
+  @@map("api_keys")
+}

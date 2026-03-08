@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.output/
+
+# Environment — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Uploads (local dev only — stored in R2 in production)
+apiforge/uploads/
+
+# Frontend build
+admin/dist/
+
+# OS / editor
+.DS_Store
+*.local
+.vscode/
+.idea/
